@@ -1,29 +1,33 @@
 import * as THREE from "three";
-import { Points, ShaderMaterial, Object3D } from "three";
 
-import Stats from "stats.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
+import Stats from "stats.js";
+import PostProcessing from "./postprocessing/postprocessing";
+import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
 
 import {
   TEXTURE_WIDTH,
   TEXTURE_HEIGHT,
   AMOUNT,
   BOX,
-  options,
   BOX_BORDER,
 } from "./config";
 import Renderer from "./renderer";
 import Simulator from "./simulation";
+import PerlinPoints from "./test/perlinPoints";
 
-import vertexParticles from "./test/particles.vert";
-import fragmentParticles from "./test/particles.frag";
+import vertexBillboard from "./shader/particles.vert";
+import fragmentBillboard from "./shader/particles.frag";
+import circleImage from "../images/circle.png";
+import targetImage from "../images/art.jpg";
 
 const BG_COLOR = "#343434";
 
 export default class Example {
+  lastTime = 0.0;
   settings = {
-    showGuides: true,
+    showBox: true,
     resolution: new THREE.Vector2(256, 256),
     speed: 1,
     dieSpeed: 0.015,
@@ -33,7 +37,10 @@ export default class Example {
   };
 
   constructor(img) {
+    this.img = img;
+
     this.scene = new THREE.Scene();
+    this.scene.position.set(-BOX[0] / 2, -BOX[1] / 2, -BOX[2] / 2);
 
     this.camera = new THREE.PerspectiveCamera(
       50,
@@ -42,34 +49,25 @@ export default class Example {
       2000
     );
     this.camera.position.set(0, 0, 30);
-    this.scene.position.set(-BOX[0] / 2, -BOX[1] / 2, -BOX[2] / 2);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(BG_COLOR, 1);
+    console.log("whether use webgl2", this.renderer.capabilities.isWebGL2);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-    this.initGui();
-    this.addLights();
-
-    this.simulator = new Simulator(
-      this.renderer,
-      this.settings,
-      BOX,
-      this.camera
-    );
-
-    this.particles = new Renderer(
+    this.postProcessing = new PostProcessing(
       this.renderer,
       this.scene,
-      this.simulator,
-      BOX,
       this.camera,
-      img
+      window.innerWidth,
+      window.innerHeight
     );
-    this.scene.add(this.particles.container);
+
+    this.initGui();
+    this.addLights();
 
     this.stats = new Stats();
     this.start = Date.now();
@@ -83,106 +81,125 @@ export default class Example {
 
   startScene() {
     this.drawBox();
-    // this.drawPerlin();
-  }
+    this.simulator = new Simulator(
+      this.renderer,
+      this.settings,
+      BOX,
+      this.camera
+    );
 
-  drawPerlin() {
-    this.perlinMaterial = new ShaderMaterial({
-      wireframe: false,
-      uniforms: {
-        time: {
-          type: "f",
-          value: 0.0,
-        },
-        pointscale: {
-          type: "f",
-          value: 0.0,
-        },
-        decay: {
-          type: "f",
-          value: 0.0,
-        },
-        complex: {
-          type: "f",
-          value: 0.0,
-        },
-        waves: {
-          type: "f",
-          value: 0.0,
-        },
-        eqcolor: {
-          type: "f",
-          value: 0.0,
-        },
-        fragment: {
-          type: "i",
-          value: true,
-        },
-        redhell: {
-          type: "i",
-          value: true,
-        },
-      },
-      vertexShader: vertexParticles,
-      fragmentShader: fragmentParticles,
-    });
+    this.particles = new Renderer(
+      this.renderer,
+      this.scene,
+      this.simulator,
+      BOX,
+      this.camera,
+      this.img
+    );
+    // this.scene.add(this.particles.scene);
 
-    const geometry = new THREE.IcosahedronGeometry(10, 80);
-    const mesh = new Points(geometry, this.perlinMaterial);
-    this.perlin = new Object3D();
-    this.perlin.add(mesh);
-    this.scene.add(this.perlin);
+    // this.perlinPoints = new PerlinPoints();
+    // this.scene.add(this.perlinPoints.container);
   }
 
   drawBox() {
-    // 创建边框
-    // const geometryDomainBox = new THREE.BoxGeometry(BOX[0], BOX[1], BOX[2]);
-    // this.domainBox = new THREE.LineSegments(
-    //   new THREE.EdgesGeometry(geometryDomainBox),
-    //   new THREE.LineBasicMaterial({ color: 0xffffff })
-    // );
-
-    // this.domainBox.position.set(BOX[0] / 2, BOX[1] / 2, BOX[2] / 2);
-    // this.domainBox.visible = this.settings.showGuides;
-    // this.scene.add(this.domainBox);
-
     const domainBox = new THREE.Object3D();
-    // 创建盒子
     for (let i = 0; i < BOX_BORDER.length; i++) {
       const { pos, size } = BOX_BORDER[i];
       const geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
-      const material = new THREE.MeshLambertMaterial({
-        color: 0xa9a9a9,
-        side: THREE.DoubleSide,
-        opacity: 0.6, // 不透明度
-        transparent: true, // 是否透明
+
+      const material = new THREE.MeshStandardMaterial({
+        roughness: 0.1,
+        metalness: 0,
+        // opacity: 0.8,
+        // transparent: true,
       });
       const materialLine = new THREE.LineSegments(
         new THREE.EdgesGeometry(geometry),
         new THREE.LineBasicMaterial({ color: 0x000 })
       );
+      materialLine.position.set(pos[0], pos[1], pos[2]);
+      // domainBox.add(materialLine);
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(pos[0], pos[1], pos[2]);
-      materialLine.position.set(pos[0], pos[1], pos[2]);
       domainBox.add(mesh);
-      domainBox.add(materialLine);
     }
     this.domainBox = domainBox;
-    this.domainBox.visible = this.settings.showGuides;
+    this.domainBox.visible = this.settings.showBox;
     this.scene.add(domainBox);
   }
 
-  animate() {
-    const time = performance.now() * 0.0005;
-    this.domainBox.visible = this.settings.showGuides;
+  addLights() {
+    let light = new THREE.AmbientLight(0xffffff);
+    this.scene.add(light);
 
-    // this.animatePerlin();
-    // this.animateMaterial();
+    let light2 = new THREE.DirectionalLight(0xffffff, 4);
+    light2.position.set(0.5, 0, 0.866);
+    this.scene.add(light2);
 
-    this.simulator.update(time);
-    // this.simulator.updateTest();
-    this.particles.render(time);
+    // const particleLight = new THREE.Mesh(
+    //   new THREE.SphereGeometry(1, 8, 8),
+    //   new THREE.MeshBasicMaterial({ color: 0xffffff })
+    // );
+    // this.scene.add(particleLight);
+    // particleLight.add(new THREE.PointLight(0xffffff, 30));
+    // this.particleLight = particleLight;
+  }
+
+  initGui() {
+    const parent = document.getElementById("side-panel");
+
+    const gui = new GUI({ autoPlace: false });
+    gui.domElement.id = "gui";
+    gui.domElement.classList.add("gui-customized");
+
+    const simulationFolder = gui.addFolder("Simulation");
+    // simulationFolder.add(this, "start").name("Start");
+    // simulationFolder.add(this, "stop").name("Stop");
+    // simulationFolder.add(this, "reset").name("Reset");
+
+    const renderingFolder = gui.addFolder("Rendering");
+    renderingFolder.add(this.settings, "showBox").name("Guides");
+
+    const ssaoPass = this.postProcessing.ssaoPass;
+    gui
+      .add(ssaoPass, "output", {
+        Default: SSAOPass.OUTPUT.Default,
+        "SSAO Only": SSAOPass.OUTPUT.SSAO,
+        "SSAO Only + Blur": SSAOPass.OUTPUT.Blur,
+        Depth: SSAOPass.OUTPUT.Depth,
+        Normal: SSAOPass.OUTPUT.Normal,
+      })
+      .onChange(function (value) {
+        ssaoPass.output = value;
+      });
+    gui.add(ssaoPass, "kernelRadius").min(0).max(32);
+    gui.add(ssaoPass, "minDistance").min(0.001).max(0.02);
+    gui.add(ssaoPass, "maxDistance").min(0.01).max(0.3);
+    gui.add(ssaoPass, "enabled");
+
+    simulationFolder.open();
+    renderingFolder.open();
+    parent.prepend(gui.domElement);
+  }
+
+  animate(currentTime) {
+    const time = performance.now() * 0.005;
+    const dt = (currentTime - this.lastTime) * 0.001 || 0.0;
+    this.lastTime = currentTime;
+
+    // this.perlinPoints.container.visible = false;
+    // this.perlinPoints.update(time);
+
+    // this.particleLight.position.x = Math.sin(timer * 7) * 15;
+    // this.particleLight.position.y = Math.cos(timer * 5) * 14;
+    // this.particleLight.position.z = Math.cos(timer * 3) * 15;
+
+    this.domainBox.visible = this.settings.showBox;
+
+    this.simulator.update(dt);
+    this.particles.render();
 
     this.camera.lookAt(this.scene.position);
     this.controls && this.controls.update();
@@ -193,66 +210,15 @@ export default class Example {
     this.stats.update();
 
     requestAnimationFrame(this.animate.bind(this));
-  }
 
-  animatePerlin() {
-    const { sinVel, ampVel } = options.spin;
-    const performance = Date.now() * 0.003;
-    this.perlin.rotation.x +=
-      (Math.sin(performance * sinVel) * ampVel * Math.PI) / 180;
-    this.perlin.rotation.y += options.perlin.vel;
-  }
-
-  animateMaterial() {
-    const material = this.perlinMaterial;
-    material.uniforms["time"].value =
-      options.perlin.speed * (Date.now() - this.start);
-    material.uniforms["pointscale"].value = options.perlin.perlins;
-    material.uniforms["decay"].value = options.perlin.decay;
-    material.uniforms["complex"].value = options.perlin.complex;
-    material.uniforms["waves"].value = options.perlin.waves;
-    material.uniforms["eqcolor"].value = options.perlin.eqcolor;
-    material.uniforms["fragment"].value = options.perlin.fragment;
-    material.uniforms["redhell"].value = options.perlin.redhell;
-  }
-
-  addLights() {
-    let light = new THREE.AmbientLight(0xffffff, 0.5);
-    this.scene.add(light);
-
-    let light2 = new THREE.DirectionalLight(0xffffff, 0.5);
-    light2.position.set(0.5, 0, 0.866);
-    this.scene.add(light2);
-
-    const light3 = new THREE.HemisphereLight(0xffffff, 0x888888, 3);
-    light.position.set(0, 1, 0);
-    this.scene.add(light3);
-  }
-
-  initGui() {
-    const parent = document.getElementById("side-panel");
-
-    this._gui = new GUI({ autoPlace: false });
-    this._gui.domElement.id = "gui";
-    this._gui.domElement.classList.add("gui-customized");
-
-    const simulationFolder = this._gui.addFolder("Simulation");
-    // simulationFolder.add(this, "start").name("Start");
-    // simulationFolder.add(this, "stop").name("Stop");
-    // simulationFolder.add(this, "reset").name("Reset");
-
-    const renderingFolder = this._gui.addFolder("Rendering");
-    renderingFolder.add(this.settings, "showGuides").name("Guides").listen();
-
-    simulationFolder.open();
-    renderingFolder.open();
-    parent.prepend(this._gui.domElement);
+    this.postProcessing.render(dt);
   }
 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.postProcessing.resize(window.innerWidth, window.innerHeight);
   }
 }
 

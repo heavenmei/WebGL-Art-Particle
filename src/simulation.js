@@ -13,7 +13,6 @@ import fragmentSimulation from "./shader/simulation.frag";
 
 export default class Simulator {
   time = 0.0;
-  _followPointTime = 0;
 
   constructor(renderer, settings, box, camera) {
     this.renderer = renderer;
@@ -155,7 +154,7 @@ export default class Simulator {
     if (this.settings.speed === 0.0) return;
     this.time += dt;
 
-    this.simulatorShader.uniforms.u_guide.value = this.settings.showGuides;
+    this.simulatorShader.uniforms.u_guide.value = this.settings.showBox;
     this.simulatorShader.uniforms.u_speed.value = this.settings.speed;
     this.simulatorShader.uniforms.u_time.value = this.time;
     this.simulatorShader.uniforms.u_particleTexture.value =

@@ -3,23 +3,6 @@ export const TEXTURE_HEIGHT = 256;
 export const AMOUNT = TEXTURE_WIDTH * TEXTURE_HEIGHT;
 export const BASE_LIFETIME = 10.0;
 
-export const options = {
-  perlin: {
-    vel: 0.002,
-    speed: 0.0005,
-    perlins: 0.0001,
-    decay: 0.1,
-    complex: 0.3,
-    waves: 10.0,
-    eqcolor: 1.0,
-    fragment: true,
-    redhell: true,
-  },
-  spin: {
-    sinVel: 0.0,
-    ampVel: 80.0,
-  },
-};
 
 export const BORDER = 0.5;
 export const BOX_X = 20,

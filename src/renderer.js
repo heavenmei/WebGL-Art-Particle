@@ -2,16 +2,12 @@ import * as THREE from "three";
 
 import { TEXTURE_WIDTH, TEXTURE_HEIGHT, AMOUNT, BOX } from "./config";
 
-import vertexSphere from "./shader/sphere.vert";
-import fragmentSphere from "./shader/sphere.frag";
-import vertexBillboard from "./shader/particles.vert";
-import fragmentBillboard from "./shader/particles.frag";
+import vertexParticles from "./shader/particles.vert";
+import fragmentParticles from "./shader/particles.frag";
 import circleImage from "../images/circle.png";
 import targetImage from "../images/art.jpg";
 
 export default class Renderer {
-  particleCount = AMOUNT;
-
   constructor(wgl, scene, simulator, box, camera, img, onload) {
     this.wgl = wgl;
     this.scene = scene;
@@ -19,7 +15,6 @@ export default class Renderer {
     this.simulator = simulator;
     this.camera = camera;
     this.img = img;
-    this.container = new THREE.Object3D();
 
     this.imgTexture = new THREE.Texture(this.img);
 
@@ -35,59 +30,7 @@ export default class Renderer {
     }
     this.particleTextureCoordinates = particleTextureCoordinates;
 
-    // this.drawInstance();
     this.drawParticles();
-  }
-
-  drawInstance() {
-    const geometry = new THREE.IcosahedronGeometry(0.1, 3);
-
-    const material = new THREE.ShaderMaterial({
-      uniforms: THREE.UniformsUtils.merge([
-        THREE.UniformsLib.shadowmap,
-        {
-          map: {
-            value: new THREE.TextureLoader().load(circleImage),
-          },
-          u_image: {
-            type: "t",
-            value: new THREE.TextureLoader().load(targetImage),
-          },
-          u_box2img: {
-            value: new THREE.Vector2(
-              BOX[0] / this.img.width,
-              BOX[1] / this.img.height
-            ),
-          },
-
-          u_positionsTexture: {
-            type: "t",
-            value: this.simulator.particlePositionTextureDefault,
-          },
-          u_positionsDefaultTexture: {
-            type: "t",
-            value: this.simulator.particlePositionTextureDefault,
-          },
-        },
-      ]),
-      vertexShader: vertexSphere,
-      fragmentShader: fragmentSphere,
-      blending: THREE.NoBlending,
-    });
-
-    material.needsUpdate = true;
-    const instancedMesh = new THREE.InstancedMesh(geometry, material, AMOUNT);
-
-    instancedMesh.geometry.setAttribute(
-      "a_textureCoordinates",
-      new THREE.InstancedBufferAttribute(
-        new Float32Array(this.particleTextureCoordinates),
-        2
-      )
-    );
-
-    this.instancedMesh = instancedMesh;
-    this.container.add(this.instancedMesh);
   }
 
   drawParticles() {
@@ -131,9 +74,9 @@ export default class Renderer {
           value: this.simulator.particlePositionTextureDefault,
         },
       },
-      vertexShader: vertexBillboard,
-      fragmentShader: fragmentBillboard,
-      // blending: THREE.NoBlending,
+      vertexShader: vertexParticles,
+      fragmentShader: fragmentParticles,
+      blending: THREE.NoBlending,
       depthTest: true,
       depthWrite: true,
     });
@@ -148,9 +91,6 @@ export default class Renderer {
   render(time) {
     if (this.billboardMesh) {
       let material = this.billboardMesh.material;
-
-      // material.uniforms.u_positionsTexture.value =
-      //   this.simulator.particlePositionTexture;
 
       material.uniforms.u_positionsTexture.value =
         this.simulator.positionRenderTarget.texture;
