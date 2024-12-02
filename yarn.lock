@@ -6174,10 +6174,10 @@ terser@^5.6.1:
     commander "^2.20.0"
     source-map-support "~0.5.20"
 
-three@^0.155.0:
-  version "0.155.0"
-  resolved "https://registry.npmmirror.com/three/-/three-0.155.0.tgz#cca9b8ad817830c8b4fdd8f0d9a12a2e413a2672"
-  integrity sha512-sNgCYmDijnIqkD/bMfk+1pHg3YzsxW7V2ChpuP6HCQ8NiZr3RufsXQr8M3SSUMjW4hG+sUk7YbyuY0DncaDTJQ==
+three@^0.171.0:
+  version "0.171.0"
+  resolved "https://registry.npmmirror.com/three/-/three-0.171.0.tgz#3c0dd3f8fa14e78a7f8db6e416b98f264f1185c0"
+  integrity sha512-Y/lAXPaKZPcEdkKjh0JOAHVv8OOnv/NDJqm0wjfCzyQmfKxV7zvkwsnBgPBKTzJHToSOhRGQAGbPJObT59B/PQ==
 
 through2@^0.6.3:
   version "0.6.5"

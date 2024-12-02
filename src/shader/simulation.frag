@@ -7,6 +7,9 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_speed;
 
+uniform vec3 u_box;
+uniform bool u_guide;
+
 #pragma glslify: snoise4 = require(./utils/snoise4.glsl)
 
 const int OCTAVES = 3;
@@ -39,14 +42,22 @@ vec3 curl(vec3 p, float noiseTime, float persistence) {
 }
 
 void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
 
-    vec2 uv = gl_FragCoord.xy / u_resolution;
     vec4 position = texture2D(u_particleTexture, uv);
+
     vec3 newPosition = position.rgb;
     float life = position.a - DIE_SPEED;
 
+    bool isOut = newPosition.x < 0.0 || newPosition.x > u_box.x || newPosition.y < 0.0 || newPosition.y > u_box.y || newPosition.z < 0.0 || newPosition.z > u_box.z;
+
     if(life < 0.0) {
         // 若粒子消亡，重置
+        vec4 defaultPosition = texture2D(u_particleDefaultTexture, uv);
+        newPosition = defaultPosition.rgb;
+        life = defaultPosition.a;
+    } else if(u_guide && isOut) {
+        // 若粒子超出边界，重置
         vec4 defaultPosition = texture2D(u_particleDefaultTexture, uv);
         newPosition = defaultPosition.rgb;
         life = defaultPosition.a;
@@ -60,4 +71,5 @@ void main() {
     }
 
     gl_FragColor = vec4(newPosition, life);
+    // gl_FragColor = position;
 }

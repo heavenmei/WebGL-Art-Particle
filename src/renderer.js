@@ -4,8 +4,8 @@ import { TEXTURE_WIDTH, TEXTURE_HEIGHT, AMOUNT, BOX } from "./config";
 
 import vertexSphere from "./shader/sphere.vert";
 import fragmentSphere from "./shader/sphere.frag";
-import vertexBillboard from "./test/billboard.vert";
-import fragmentBillboard from "./test/billboard.frag";
+import vertexBillboard from "./shader/particles.vert";
+import fragmentBillboard from "./shader/particles.frag";
 import circleImage from "../images/circle.png";
 import targetImage from "../images/art.jpg";
 
@@ -35,11 +35,11 @@ export default class Renderer {
     }
     this.particleTextureCoordinates = particleTextureCoordinates;
 
-    // this.drawParticles();
-    this.drawBillboard();
+    // this.drawInstance();
+    this.drawParticles();
   }
 
-  drawParticles() {
+  drawInstance() {
     const geometry = new THREE.IcosahedronGeometry(0.1, 3);
 
     const material = new THREE.ShaderMaterial({
@@ -90,20 +90,12 @@ export default class Renderer {
     this.container.add(this.instancedMesh);
   }
 
-  drawBillboard() {
+  drawParticles() {
     const circleGeometry = new THREE.CircleGeometry(0.1, 6);
 
     let geometry = new THREE.InstancedBufferGeometry();
     geometry.index = circleGeometry.index;
     geometry.attributes = circleGeometry.attributes;
-
-    geometry.setAttribute(
-      "translate",
-      new THREE.InstancedBufferAttribute(
-        this.simulator.particlePositionsBuffer,
-        4
-      )
-    );
 
     geometry.setAttribute(
       "textureCoordinates",
@@ -126,38 +118,28 @@ export default class Renderer {
           type: "t",
           value: new THREE.TextureLoader().load(targetImage),
         },
+        u_imageSize: {
+          type: "t",
+          value: new THREE.Vector2(this.img.width, this.img.height),
+        },
         u_positionsTexture: {
+          type: "t",
+          value: undefined,
+        },
+        u_positionsDefaultTexture: {
           type: "t",
           value: this.simulator.particlePositionTextureDefault,
         },
-        // ...THREE.UniformsUtils.merge([
-        //   {
-        //     u_positionsTexture: {
-        //       value: this.simulator.particlePositionTextureDefault,
-        //     },
-        //   },
-        // ]),
       },
       vertexShader: vertexBillboard,
       fragmentShader: fragmentBillboard,
-      blending: THREE.NoBlending,
-
-      // depthTest: true,
-      // depthWrite: true,
+      // blending: THREE.NoBlending,
+      depthTest: true,
+      depthWrite: true,
     });
 
     let mesh = new THREE.Mesh(geometry, material);
-
-    const particlePositionTexture = new THREE.DataArrayTexture(
-      this.simulator.particlePositionsBuffer,
-      TEXTURE_WIDTH,
-      TEXTURE_HEIGHT,
-      THREE.RGBAFormat,
-      THREE.FloatType
-    );
-
-    mesh.material.uniforms.u_positionsTexture.value = particlePositionTexture;
-    mesh.material.needsUpdate = true;
+    mesh.material.uniforms.needsUpdate = true;
 
     this.scene.add(mesh);
     this.billboardMesh = mesh;
@@ -165,39 +147,13 @@ export default class Renderer {
 
   render(time) {
     if (this.billboardMesh) {
-      // this.billboardMesh.material.uniforms["time"].value = time;
-      // this.billboardMesh.rotation.x = time * 0.2;
-      // this.billboardMesh.rotation.y = time * 0.4;
-      // this.billboardMesh.material.uniforms.u_positionsTexture =
-      //   this.simulator.particlePositionTextureDefault;
-    }
+      let material = this.billboardMesh.material;
 
-    // const simulator = this.simulator;
-    // const material = this.instancedMesh.material;
-    // const mesh = this.instancedMesh;
-    // material.uniforms["time"].value =
-    //   options.perlin.speed * (Date.now() - currentTime);
-    // material.uniforms["pointscale"].value = options.perlin.perlins;
-    // material.uniforms["decay"].value = options.perlin.decay;
-    // material.uniforms["complex"].value = options.perlin.complex;
-    // material.uniforms["waves"].value = options.perlin.waves;
-    // material.uniforms["eqcolor"].value = options.perlin.eqcolor;
-    // material.uniforms["fragment"].value = options.perlin.fragment;
-    // material.uniforms["redhell"].value = options.perlin.redhell;
-    // material.needsUpdate = true;
-    // this.instancedMesh.geometry.setAttribute(
-    //   "instancePosition",
-    //   new THREE.InstancedBufferAttribute(
-    //     new Float32Array(this.simulator.particlePositionsBuffer),
-    //     4
-    //   )
-    // );
-    // console.log(this.simulator.positionRenderTarget);
-    // const pTexture = this.simulator.positionRenderTarget.texture;
-    // material.uniforms.u_positionsTexture.value =
-    //   simulator.positionRenderTarget.texture;
-    // // material.uniforms.u_positionsTexture.value =
-    // //   simulator.particlePositionTexture;
-    // material.needsUpdate = true;
+      // material.uniforms.u_positionsTexture.value =
+      //   this.simulator.particlePositionTexture;
+
+      material.uniforms.u_positionsTexture.value =
+        this.simulator.positionRenderTarget.texture;
+    }
   }
 }

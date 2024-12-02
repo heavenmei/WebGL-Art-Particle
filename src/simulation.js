@@ -9,40 +9,26 @@ import {
 
 import vertexQuad from "./shader/quad.vert";
 import fragmentThrough from "./shader/through.frag";
-// import fragmentPosition from "./shader/position.frag";
-import vertexSimulation from "./shader/simulation.vert";
 import fragmentSimulation from "./shader/simulation.frag";
 
 export default class Simulator {
-  settings = {
-    speed: 1,
-    dieSpeed: 0.015,
-    radius: 0,
-    curlSize: 0,
-    attraction: 0,
-  };
   time = 0.0;
   _followPointTime = 0;
 
-  constructor(wgl, scene, box, camera) {
-    this.wgl = wgl;
+  constructor(renderer, settings, box, camera) {
+    this.renderer = renderer;
+    this.settings = settings;
     this.scene = new THREE.Scene();
     this.camera = new THREE.Camera();
     this.camera.position.z = 1;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-    if (!wgl.capabilities.maxVertexTextures) {
+    if (!renderer.capabilities.maxVertexTextures) {
       console.warn(
         "No support for vertex shader textures gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS!"
       );
-      return;
     }
-    if (!wgl.capabilities.floatFragmentTextures) {
+    if (!renderer.capabilities.floatFragmentTextures) {
       console.warn("No OES_texture_float support for float textures!");
-      return;
     }
 
     this.copyShader = new THREE.RawShaderMaterial({
@@ -67,8 +53,10 @@ export default class Simulator {
         u_particleDefaultTexture: { type: "t", value: undefined },
         u_speed: { type: "f", value: 1 },
         u_time: { type: "f", value: 0 },
+        u_guide: { type: "b", value: false },
+        u_box: { type: "v3", value: new THREE.Vector3(BOX[0], BOX[1], BOX[2]) },
       },
-      vertexShader: vertexSimulation,
+      vertexShader: vertexQuad,
       fragmentShader: fragmentSimulation,
       blending: THREE.NoBlending,
       transparent: false,
@@ -106,7 +94,7 @@ export default class Simulator {
     // * generate initial particle positions
     const positions = new Float32Array(AMOUNT * 4);
     for (var i = 0; i < AMOUNT; ++i) {
-      var position = randomPoint([BOX[0], BOX[1], BOX[2] / 2]);
+      var position = randomPoint([BOX[0], BOX[1], BOX[2]]);
 
       positions[i * 4] = position[0];
       positions[i * 4 + 1] = position[1];
@@ -114,6 +102,7 @@ export default class Simulator {
       positions[i * 4 + 3] = Math.random() * BASE_LIFETIME;
     }
 
+    // * used the buffer to create a DataTexture
     const particlePositionTexture = new THREE.DataTexture(
       positions,
       TEXTURE_WIDTH,
@@ -121,24 +110,24 @@ export default class Simulator {
       THREE.RGBAFormat,
       THREE.FloatType
     );
-
-    this.particlePositionTexture = particlePositionTexture;
+    particlePositionTexture.needsUpdate = true;
     this.particlePositionTextureDefault = particlePositionTexture;
-    this.particlePositionsBuffer = positions;
 
-    // this.copyShader.uniforms.texture.value = particlePositionTexture;
+    // this.particlePositionTexture = particlePositionTexture;
+    // this.particlePositionsBuffer = positions;
 
-    // this.mesh.material = this.copyShader;
-    // this.mesh.material.needsUpdate = true;
-    // this.wgl.render(this.scene, this.camera, this.positionRenderTarget);
-    // this._copyTexture(this.particlePositionTexture, this.positionRenderTarget);
-    // this._copyTexture(this.positionRenderTarget, this.positionRenderTarget2);
+    this._copyTexture(particlePositionTexture, this.positionRenderTarget);
+    this._copyTexture(
+      this.positionRenderTarget.texture,
+      this.positionRenderTarget2
+    );
   }
 
   _copyTexture(input, output) {
     this.mesh.material = this.copyShader;
     this.copyShader.uniforms.texture.value = input;
-    this.renderer.render(this.scene, this.camera, output);
+    this.renderer.setRenderTarget(output);
+    this.renderer.render(this.scene, this.camera);
   }
 
   updateTest(dt) {
@@ -162,32 +151,23 @@ export default class Simulator {
     this.particlePositionTexture = particlePositionTexture;
   }
 
-  swap() {
-    let tmp = this.positionRenderTarget;
-    this.positionRenderTarget = this.positionRenderTarget2;
-    this.positionRenderTarget2 = tmp;
-  }
-
   update(dt) {
     if (this.settings.speed === 0.0) return;
     this.time += dt;
-    const wgl = this.wgl;
 
-    var autoClearColor = wgl.autoClearColor;
-    // var clearColor = wgl.getClearColor().getHex();
-    var clearAlpha = wgl.getClearAlpha();
-
+    this.simulatorShader.uniforms.u_guide.value = this.settings.showGuides;
     this.simulatorShader.uniforms.u_speed.value = this.settings.speed;
     this.simulatorShader.uniforms.u_time.value = this.time;
     this.simulatorShader.uniforms.u_particleTexture.value =
-      this.positionRenderTarget2;
+      this.positionRenderTarget2.texture;
     this.simulatorShader.uniforms.u_particleDefaultTexture.value =
       this.particlePositionTextureDefault;
 
     this.mesh.material = this.simulatorShader;
+    this.renderer.setRenderTarget(this.positionRenderTarget);
+    this.renderer.render(this.scene, this.camera);
 
-    this.swap();
-    this.renderer.render(this.scene, this.camera, this.positionRenderTarget);
+    swap(this, "positionRenderTarget", "positionRenderTarget2");
   }
 }
 
@@ -198,4 +178,10 @@ export function randomPoint(max) {
     point[i] = Math.random() * max[i];
   }
   return point;
+}
+
+function swap(object, a, b) {
+  var temp = object[a];
+  object[a] = object[b];
+  object[b] = temp;
 }

@@ -1,11 +1,18 @@
 import * as THREE from "three";
-import { IcosahedronGeometry, Points, ShaderMaterial, Object3D } from "three";
+import { Points, ShaderMaterial, Object3D } from "three";
 
 import Stats from "stats.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 
-import { TEXTURE_WIDTH, TEXTURE_HEIGHT, AMOUNT, BOX, options } from "./config";
+import {
+  TEXTURE_WIDTH,
+  TEXTURE_HEIGHT,
+  AMOUNT,
+  BOX,
+  options,
+  BOX_BORDER,
+} from "./config";
 import Renderer from "./renderer";
 import Simulator from "./simulation";
 
@@ -18,6 +25,11 @@ export default class Example {
   settings = {
     showGuides: true,
     resolution: new THREE.Vector2(256, 256),
+    speed: 1,
+    dieSpeed: 0.015,
+    radius: 0,
+    curlSize: 0,
+    attraction: 0,
   };
 
   constructor(img) {
@@ -27,9 +39,9 @@ export default class Example {
       50,
       window.innerWidth / window.innerHeight,
       0.1,
-      100
+      2000
     );
-    this.camera.position.set(-15, 0, 30);
+    this.camera.position.set(0, 0, 30);
     this.scene.position.set(-BOX[0] / 2, -BOX[1] / 2, -BOX[2] / 2);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -42,7 +54,12 @@ export default class Example {
     this.initGui();
     this.addLights();
 
-    this.simulator = new Simulator(this.renderer, this.scene, BOX, this.camera);
+    this.simulator = new Simulator(
+      this.renderer,
+      this.settings,
+      BOX,
+      this.camera
+    );
 
     this.particles = new Renderer(
       this.renderer,
@@ -118,31 +135,59 @@ export default class Example {
   }
 
   drawBox() {
-    const geometryDomainBox = new THREE.BoxGeometry(BOX[0], BOX[1], BOX[2]);
-    console.log(geometryDomainBox);
+    // 创建边框
+    // const geometryDomainBox = new THREE.BoxGeometry(BOX[0], BOX[1], BOX[2]);
+    // this.domainBox = new THREE.LineSegments(
+    //   new THREE.EdgesGeometry(geometryDomainBox),
+    //   new THREE.LineBasicMaterial({ color: 0xffffff })
+    // );
 
-    this.domainBox = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geometryDomainBox),
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
+    // this.domainBox.position.set(BOX[0] / 2, BOX[1] / 2, BOX[2] / 2);
+    // this.domainBox.visible = this.settings.showGuides;
+    // this.scene.add(this.domainBox);
 
-    this.domainBox.position.set(BOX[0] / 2, BOX[1] / 2, BOX[2] / 2);
+    const domainBox = new THREE.Object3D();
+    // 创建盒子
+    for (let i = 0; i < BOX_BORDER.length; i++) {
+      const { pos, size } = BOX_BORDER[i];
+      const geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+      const material = new THREE.MeshLambertMaterial({
+        color: 0xa9a9a9,
+        side: THREE.DoubleSide,
+        opacity: 0.6, // 不透明度
+        transparent: true, // 是否透明
+      });
+      const materialLine = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geometry),
+        new THREE.LineBasicMaterial({ color: 0x000 })
+      );
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(pos[0], pos[1], pos[2]);
+      materialLine.position.set(pos[0], pos[1], pos[2]);
+      domainBox.add(mesh);
+      domainBox.add(materialLine);
+    }
+    this.domainBox = domainBox;
     this.domainBox.visible = this.settings.showGuides;
-    this.scene.add(this.domainBox);
+    this.scene.add(domainBox);
   }
 
   animate() {
     const time = performance.now() * 0.0005;
+    this.domainBox.visible = this.settings.showGuides;
 
     // this.animatePerlin();
     // this.animateMaterial();
 
-    // this.simulator.update();
+    this.simulator.update(time);
     // this.simulator.updateTest();
     this.particles.render(time);
 
     this.camera.lookAt(this.scene.position);
     this.controls && this.controls.update();
+    this.renderer.setRenderTarget(null);
+    this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
 
     this.stats.update();
@@ -197,7 +242,7 @@ export default class Example {
     // simulationFolder.add(this, "reset").name("Reset");
 
     const renderingFolder = this._gui.addFolder("Rendering");
-    renderingFolder.add(this.settings, "showGuides").name("Guides");
+    renderingFolder.add(this.settings, "showGuides").name("Guides").listen();
 
     simulationFolder.open();
     renderingFolder.open();
