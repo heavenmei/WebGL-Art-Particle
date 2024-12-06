@@ -7,7 +7,7 @@ import fragmentParticles from "./shader/particles.frag";
 import circleImage from "../images/circle.png";
 import targetImage from "../images/art.jpg";
 
-export default class Renderer {
+export default class Particles {
   constructor(wgl, scene, simulator, box, camera, img, onload) {
     this.wgl = wgl;
     this.scene = scene;

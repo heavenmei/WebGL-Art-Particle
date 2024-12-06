@@ -13,14 +13,9 @@ import {
   BOX,
   BOX_BORDER,
 } from "./config";
-import Renderer from "./renderer";
+import Particles from "./particles";
 import Simulator from "./simulation";
 import PerlinPoints from "./test/perlinPoints";
-
-import vertexBillboard from "./shader/particles.vert";
-import fragmentBillboard from "./shader/particles.frag";
-import circleImage from "../images/circle.png";
-import targetImage from "../images/art.jpg";
 
 const BG_COLOR = "#343434";
 
@@ -88,7 +83,7 @@ export default class Example {
       this.camera
     );
 
-    this.particles = new Renderer(
+    this.particles = new Particles(
       this.renderer,
       this.scene,
       this.simulator,
