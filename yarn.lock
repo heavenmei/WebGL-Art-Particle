@@ -945,16 +945,6 @@
   resolved "https://registry.npmmirror.com/@types/q/-/q-1.5.8.tgz#95f6c6a08f2ad868ba230ead1d2d7f7be3db3837"
   integrity sha512-hroOstUScF6zhIi+5+x0dzqrHA1EJi+Irri6b1fxolMTqqHIV/Cg77EtnQcZqZCu8hR3mX2BzIxN4/GzI68Kfw==
 
-"@types/stats.js@0.17.0":
-  version "0.17.0"
-  resolved "https://registry.npmmirror.com/@types/stats.js/-/stats.js-0.17.0.tgz#0ed81d48e03b590c24da85540c1d952077a9fe20"
-  integrity sha512-9w+a7bR8PeB0dCT/HBULU2fMqf6BAzvKbxFboYhmDtDkKPiyXYbjoe2auwsXlEFI7CFNMF1dCv3dFH5Poy9R1w==
-
-"@types/three@0.93.5":
-  version "0.93.5"
-  resolved "https://registry.npmmirror.com/@types/three/-/three-0.93.5.tgz#460390081296522d99e54c6a8241b13f87fb6bc6"
-  integrity sha512-OTo2ZezU5FkFB0Pdq0WOK+HDl6QobeCspn3tgJrqBt2WSl5GOrzVUU/Zyl5CP4QC9e++3Ni8a6qCaZo7vBS0/A==
-
 abab@^2.0.0:
   version "2.0.6"
   resolved "https://registry.npmmirror.com/abab/-/abab-2.0.6.tgz#41b80f2c871d19686216b82309231cfd3cb3d291"
@@ -1406,7 +1396,7 @@ babel-plugin-transform-async-to-generator@^6.22.0:
     babel-plugin-syntax-async-functions "^6.8.0"
     babel-runtime "^6.22.0"
 
-babel-plugin-transform-class-properties@6.24.1:
+babel-plugin-transform-class-properties@^6.24.1:
   version "6.24.1"
   resolved "https://registry.npmmirror.com/babel-plugin-transform-class-properties/-/babel-plugin-transform-class-properties-6.24.1.tgz#6a79763ea61d33d36f37b611aa9def81a81b46ac"
   integrity sha512-n4jtBA3OYBdvG5PRMKsMXJXHfLYw/ZOmtxCLOOwz6Ro5XlrColkStLnz1AS1L2yfPA9BKJ1ZNlmVCLjAL9DSIg==
@@ -3520,11 +3510,6 @@ has-values@^1.0.0:
     is-number "^3.0.0"
     kind-of "^4.0.0"
 
-has-webgl@0.0.1:
-  version "0.0.1"
-  resolved "https://registry.npmmirror.com/has-webgl/-/has-webgl-0.0.1.tgz#29525c116ab7f1c7a481b4855133822c38115701"
-  integrity sha512-BmcjxgD+80y2BZ8e7I0EllW85/bmzSyDjm4FZ5x+xkadwX5rO47+8CVaqgqU/kuUCBveb9T5BJPsQ1bjcx1LxA==
-
 has@^1.0.0, has@^1.0.1:
   version "1.0.4"
   resolved "https://registry.npmmirror.com/has/-/has-1.0.4.tgz#2eb2860e000011dae4f1406a86fe80e530fb2ec6"
@@ -3684,11 +3669,6 @@ ieee754@^1.1.4:
   version "1.2.1"
   resolved "https://registry.npmmirror.com/ieee754/-/ieee754-1.2.1.tgz#8eb7a10a63fff25d15a57b001586d177d1b0d352"
   integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
-
-images@^3.2.4:
-  version "3.2.4"
-  resolved "https://registry.npmmirror.com/images/-/images-3.2.4.tgz#18191d88c7d2a06f772b669a1b3d7d09613fc55b"
-  integrity sha512-Uq61/Q8XixCRyKvws7tPwboK0O70Dbr4kMQZHw2dqdEhnU6TpaGwyMg0vzQ4aaGtrO9N3etq46XwF7hxbqp8ug==
 
 import-fresh@^2.0.0:
   version "2.0.0"
@@ -5991,7 +5971,7 @@ static-module@^2.2.0:
     static-eval "^2.0.0"
     through2 "~2.0.3"
 
-stats.js@0.17.0:
+stats.js@^0.17.0:
   version "0.17.0"
   resolved "https://registry.npmmirror.com/stats.js/-/stats.js-0.17.0.tgz#b1c3dc46d94498b578b7fd3985b81ace7131cc7d"
   integrity sha512-hNKz8phvYLPEcRkeG1rsGmV5ChMjKDAWU7/OJJdDErPBNChQXxCo3WZurGpnWc6gZhAzEPFad1aVgyOANH1sMw==
@@ -6288,6 +6268,11 @@ tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"
   resolved "https://registry.npmmirror.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
   integrity sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==
+
+twgl.js@^5.5.4:
+  version "5.5.4"
+  resolved "https://registry.npmmirror.com/twgl.js/-/twgl.js-5.5.4.tgz#ce79dd59ee5f4dffc9acdbb402431123ec84277a"
+  integrity sha512-6kFOmijOpmblTN9CCwOTCxK4lPg7rCyQjLuub6EMOlEp89Ex6yUcsMjsmH7andNPL2NE3XmHdqHeP5gVKKPhxw==
 
 type-check@~0.3.2:
   version "0.3.2"
