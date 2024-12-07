@@ -484,3 +484,40 @@ var hsvToRGB = function (h, s, v) {
 
   return [r, g, b];
 };
+
+export function getCubePositions(size) {
+  const k = size / 2;
+  // const k = 1.0;
+  // Create a cube
+  //    v6----- v5
+  //   /|      /|
+  //  v1------v0|
+  //  | |     | |
+  //  | |v7---|-|v4
+  //  |/      |/
+  //  v2------v3
+  const indices = [
+    [0, 1, 2, 0, 2, 3], // 前
+    [0, 3, 4, 0, 4, 5], // 右
+    [0, 5, 6, 0, 6, 1], // 上
+    [1, 6, 7, 1, 7, 2], //左
+    [7, 4, 3, 7, 3, 2], //下
+    [4, 7, 6, 4, 6, 5], //后
+  ];
+
+  const cornerVertices = [
+    [+k, +k, +k], // v0
+    [-k, +k, +k], // v1
+    [-k, -k, +k], // v2
+    [+k, -k, +k], // v3
+    [+k, -k, -k], // v4
+    [+k, +k, -k], // v5
+    [-k, +k, -k], // v6
+    [-k, -k, -k], // v7
+  ];
+
+  return {
+    vertices: cornerVertices.flat(),
+    indices: indices.flat(),
+  };
+}

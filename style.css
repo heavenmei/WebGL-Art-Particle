@@ -5,7 +5,6 @@ html {
   --brighter-color: #d0d0d0;
   --darker-color: #0c0c0c;
 
-  --debug-panel-width: 350px;
   font-family: Source Code Pro, monospace, sans-serif;
   --color: rgb(224, 190, 96);
 }
@@ -48,88 +47,15 @@ body {
   z-index: 100;
 }
 
-#controls {
+.fluid {
+  display: none;
   position: absolute;
-  left: 0;
-  bottom: 0;
-  padding: 1em;
-}
+  left: 20px;
+  bottom: 20px;
 
-#controls p {
-  display: inline;
-}
-
-#side-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--debug-panel-width);
-  height: 100%;
-}
-
-#debug-panel {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  padding: 20px;
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: flex-start;
-  align-items: center;
-  align-content: flex-start;
-  overflow: scroll;
-  border-left: 1px solid var(--white-color);
-}
-
-.debug-item {
-  display: inline-block;
-  padding-top: 1em;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-}
-
-#debug-header {
-  align-self: stretch;
-  color: var(--white-color);
-}
-
-td.debug-text {
-  text-align: right;
-}
-
-#debug-header td.stat-name {
-  max-width: 75px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.debug-item > div:nth-child(1) {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  outline: 1px solid var(--white-color);
-}
-
-.debug-item > div:nth-child(2) {
-  color: var(--white-color);
-  width: 100%;
-  margin-top: 0.5em;
-}
-
-.panel-slider {
-  position: fixed;
-  top: 50%;
-  right: calc(var(--debug-panel-width) - 11px);
-  cursor: ew-resize;
-
-  width: 20px;
-  height: 20px;
-  background-color: var(--main-color);
-  border: 1px solid var(--white-color);
-  border-radius: 50%;
-
-  text-align: center;
-  color: var(--white-color);
+  font-size: 12px;
+  line-height: 16px;
+  color: #787878;
 }
 
 .tooltip .tooltiptext {

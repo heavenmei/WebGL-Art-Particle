@@ -3,7 +3,7 @@ import Utilities from "./utilities";
 
 export default class Camera {
   static SENSITIVITY = 0.005;
-  static MIN_DISTANCE = 25.0;
+  static MIN_DISTANCE = 10.0;
   static MAX_DISTANCE = 60.0;
 
   constructor(

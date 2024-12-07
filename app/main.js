@@ -1,7 +1,7 @@
 "use strict";
 import dat from "dat.gui";
 
-import Sphere from "./sphere";
+import Test from "./test";
 import Curl from "./curl";
 import Fluid from "./fluid";
 
@@ -38,7 +38,7 @@ const changeTypeCallback = (newValue) => {
       new Curl(gui, image);
       break;
     case "Test":
-      new Sphere();
+      new Test();
       break;
   }
 };

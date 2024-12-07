@@ -1,5 +1,7 @@
 import vertBoxwireframe from "./shaders/boxwireframe.vert";
 import fragBoxwireframe from "./shaders/boxwireframe.frag";
+import vertBox from "./shaders/box.vert";
+import fragBox from "./shaders/box.frag";
 
 export const BORDER = 1;
 export const BOX_X = 30,
@@ -8,10 +10,10 @@ export const BOX_X = 30,
 
 const BOX_BORDER = [
   // behind
-  // {
-  //   min: [-BORDER, -BORDER, -BORDER],
-  //   max: [BOX_X + BORDER, BOX_Y + BORDER, 0],
-  // },
+  {
+    min: [-BORDER, -BORDER, -BORDER],
+    max: [BOX_X + BORDER, BOX_Y + BORDER, 0],
+  },
   { min: [-BORDER, -BORDER, 0], max: [0, BOX_Y, BOX_Z] }, // left
   { min: [BOX_X, -BORDER, 0], max: [BOX_X + BORDER, BOX_Y, BOX_Z] }, //right
   {
@@ -50,11 +52,15 @@ class Box {
     this.loadPrograms();
   }
 
-  loadPrograms(onLoaded) {
+  loadPrograms() {
     const programs = this.wgl.createProgramsFromSource({
       boxWireframeProgram: {
         vertexShader: vertBoxwireframe,
         fragmentShader: fragBoxwireframe,
+      },
+      boxProgram: {
+        vertexShader: vertBox,
+        fragmentShader: fragBox,
       },
     });
 
@@ -210,6 +216,7 @@ class Box {
       .bindFramebuffer(null)
       .viewport(0, 0, this.canvas.width, this.canvas.height)
 
+      .enable(wgl.DEPTH_TEST)
       .enable(wgl.CULL_FACE)
 
       .useProgram(this.boxProgram)
@@ -297,16 +304,7 @@ class Box {
   }
 
   render() {
-    // let wgl = this.wgl;
-    // wgl.clear(
-    //   wgl
-    //     .createClearState()
-    //     .bindFramebuffer(null)
-    //     .clearColor(0.0, 0.0, 0.0, 0.0),
-    //   wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
-    // );
-
-    // this.drawBoxes();
+    this.drawBoxes();
     this.drawBoxesBorder();
   }
 }

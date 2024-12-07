@@ -51,7 +51,6 @@ class Renderer {
     this.wgl.getExtension("OES_texture_float");
     this.wgl.getExtension("OES_texture_float_linear");
     this.wgl.getExtension("ANGLE_instanced_arrays");
-    this.depthExt = this.wgl.getExtension("WEBGL_depth_texture");
 
     this.quadVertexBuffer = wgl.createBuffer();
     wgl.bufferData(

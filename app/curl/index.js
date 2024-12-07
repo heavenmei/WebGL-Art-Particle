@@ -236,8 +236,7 @@ export default class Curl {
     );
 
     this.renderer.draw();
-    // this.box.draw();
-    // this.drawScene();
+    this.box.draw();
 
     requestAnimationFrame(this.update.bind(this));
 

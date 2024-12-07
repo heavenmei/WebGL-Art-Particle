@@ -216,6 +216,7 @@ class Box {
       .bindFramebuffer(null)
       .viewport(0, 0, this.canvas.width, this.canvas.height)
 
+      .enable(wgl.DEPTH_TEST)
       .enable(wgl.CULL_FACE)
 
       .useProgram(this.boxProgram)
@@ -329,7 +330,7 @@ class Box {
     // );
 
     this.drawBoxes();
-    // this.drawBoxesBorder();
+    this.drawBoxesBorder();
     // this.drawTmpTexture(this.boxTexture);
   }
 }

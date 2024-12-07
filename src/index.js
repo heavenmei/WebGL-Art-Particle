@@ -143,8 +143,6 @@ export default class Example {
   }
 
   initGui() {
-    const parent = document.getElementById("side-panel");
-
     const gui = new GUI({ autoPlace: false });
     gui.domElement.id = "gui";
     gui.domElement.classList.add("gui-customized");
@@ -176,7 +174,7 @@ export default class Example {
 
     simulationFolder.open();
     renderingFolder.open();
-    parent.prepend(gui.domElement);
+    document.body.prepend(gui.domElement);
   }
 
   animate(currentTime) {

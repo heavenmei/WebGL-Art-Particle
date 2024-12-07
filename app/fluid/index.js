@@ -93,7 +93,6 @@ class Fluid {
 
     this.initGui();
 
-    this.state = Status.EDITING;
     this.boxEditor.boxes.length = 0;
 
     var preset = PRESETS[this.currentPresetIndex];
@@ -112,7 +111,13 @@ class Fluid {
 
     window.addEventListener("resize", this.onResize.bind(this));
 
+    const fluidElements = document.getElementsByClassName("fluid");
+    for (let i = 0; i < fluidElements.length; i++) {
+      fluidElements[i].style.display = "block";
+    }
+
     this.onResize();
+    this.startSimulation();
   }
 
   initGui() {
