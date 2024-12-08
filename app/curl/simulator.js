@@ -10,7 +10,7 @@ class Simulator {
   time = 0.0;
   frameNumber = 0; //used for motion randomness
 
-  constructor(canvas, wgl, image, onLoaded) {
+  constructor(canvas, wgl, image) {
     this.canvas = canvas;
     this.wgl = wgl;
     this.image = image;
@@ -108,7 +108,7 @@ class Simulator {
       // particleRandoms[i * 4 + 3] =
       //   BASE_LIFETIME + Math.random() * BASE_LIFETIME;
     }
-    console.log("=== particlePositionsData", particlePositionsData);
+    // console.log("=== particlePositionsData", particlePositionsData);
 
     wgl.rebuildTexture(
       this.particlePositionTextureDefault,

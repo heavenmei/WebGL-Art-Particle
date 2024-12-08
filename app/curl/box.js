@@ -10,10 +10,10 @@ export const BOX_X = 30,
 
 const BOX_BORDER = [
   // behind
-  // {
-  //   min: [-BORDER, -BORDER, -BORDER],
-  //   max: [BOX_X + BORDER, BOX_Y + BORDER, 0],
-  // },
+  {
+    min: [-BORDER, -BORDER, -BORDER],
+    max: [BOX_X + BORDER, BOX_Y + BORDER, 0],
+  },
   { min: [-BORDER, -BORDER, 0], max: [0, BOX_Y, BOX_Z] }, // left
   { min: [BOX_X, -BORDER, 0], max: [BOX_X + BORDER, BOX_Y, BOX_Z] }, //right
   {
@@ -208,12 +208,12 @@ class Box {
     );
   }
 
-  drawBoxes() {
+  drawBoxes(framebuffer) {
     let wgl = this.wgl;
 
     var boxDrawState = wgl
       .createDrawState()
-      .bindFramebuffer(null)
+      .bindFramebuffer(framebuffer)
       .viewport(0, 0, this.canvas.width, this.canvas.height)
 
       .enable(wgl.DEPTH_TEST)
@@ -257,10 +257,10 @@ class Box {
     }
   }
 
-  drawBoxesBorder() {
+  drawBoxesBorder(framebuffer) {
     var boxWireframeDrawState = wgl
       .createDrawState()
-      .bindFramebuffer(null)
+      .bindFramebuffer(framebuffer)
       .viewport(0, 0, this.canvas.width, this.canvas.height)
 
       .enable(wgl.DEPTH_TEST)
@@ -319,7 +319,7 @@ class Box {
     wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  draw() {
+  draw(framebuffer) {
     // let wgl = this.wgl;
     // wgl.clear(
     //   wgl
@@ -329,8 +329,8 @@ class Box {
     //   wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
     // );
 
-    this.drawBoxes();
-    this.drawBoxesBorder();
+    this.drawBoxes(framebuffer);
+    this.drawBoxesBorder(framebuffer);
     // this.drawTmpTexture(this.boxTexture);
   }
 }

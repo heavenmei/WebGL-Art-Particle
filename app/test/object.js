@@ -108,12 +108,11 @@ export default class Object {
       wgl.STATIC_DRAW
     );
 
-    console.log("🎈 === Instance offset buffer", offsetArray);
-
     console.log(
-      "🎈 === Sphere vertices & Cube  ",
+      "🏀 ===  sphereVertices, cubeVertices, offsetArray ",
       sphereVertices,
-      cubeVertices
+      cubeVertices,
+      offsetArray
     );
   }
 

@@ -2,6 +2,7 @@
 import WrappedGL from "../lib/wrappedgl";
 import Camera from "../lib/camera";
 import Utilities from "../lib/utilities";
+import Stats from "stats.js";
 
 import Object from "./object";
 import Box from "./box";
@@ -9,16 +10,20 @@ import Instance from "./instance";
 
 const FOV = Math.PI / 3;
 export default class Test {
-  constructor() {
+  constructor(gui) {
     var canvas = (this.canvas = document.getElementById("canvas"));
     var wgl = (this.wgl = new WrappedGL(canvas));
     wgl ? console.log("=== WebGL init", wgl) : alert("WebGL not supported");
     window.wgl = wgl;
+    this.gui = gui;
 
     this.wgl.getExtension("EXT_frag_depth");
     this.wgl.getExtension("OES_texture_float");
     this.wgl.getExtension("OES_texture_float_linear");
     this.wgl.getExtension("ANGLE_instanced_arrays");
+    const stats = new Stats();
+    this.stats = stats;
+    document.body.appendChild(stats.domElement);
 
     this.camera = new Camera(this.canvas, [15, 10, 0], 40.0, 0, 0);
     this.projectionMatrix = Utilities.makePerspectiveMatrix(
@@ -30,6 +35,7 @@ export default class Test {
     );
 
     this.init();
+    this.initGUI();
     this.render();
 
     /** init */
@@ -60,11 +66,21 @@ export default class Test {
       this.canvas,
       this.wgl,
       this.projectionMatrix,
-      this.camera
+      this.camera,
+      this.gui
     );
   }
 
+  initGUI() {
+    const gui = this.gui;
+    const renderingFolder = gui.addFolder("Rendering");
+    renderingFolder.add(this.instance, "fbo").name("FBO");
+
+    renderingFolder.open();
+  }
+
   render(time) {
+    this.stats.begin();
     time *= 0.0005;
 
     wgl.clear(
@@ -72,11 +88,12 @@ export default class Test {
       wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
     );
 
-    this.object.render(time);
-    this.box.render();
+    // this.object.render(time);
     this.instance.render(time);
+    this.box.render();
 
     requestAnimationFrame(this.render.bind(this));
+    this.stats.end();
   }
 
   onResize() {

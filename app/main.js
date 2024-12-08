@@ -38,7 +38,7 @@ const changeTypeCallback = (newValue) => {
       new Curl(gui, image);
       break;
     case "Test":
-      new Test();
+      new Test(gui);
       break;
   }
 };

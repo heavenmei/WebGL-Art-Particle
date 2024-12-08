@@ -13,8 +13,8 @@ const FOV = Math.PI / 3;
 const PARTICLES_PER_CELL = 10;
 
 const BOX = [
-  [0, 0, BOX_Z - 1],
-  [BOX_X, BOX_Y, BOX_Z],
+  [0, 0, 0],
+  [BOX_X, BOX_Y, 2],
 ];
 
 export default class Curl {
@@ -23,7 +23,7 @@ export default class Curl {
   lastTime = 0.0;
   settings = {
     showBox: true,
-    speed: 1,
+    speed: 0,
     gridCellDensity: 20,
     dieSpeed: 0.015,
     radius: 0,
@@ -122,46 +122,6 @@ export default class Curl {
     renderingFolder.open();
   }
 
-  onResize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-
-    Utilities.makePerspectiveMatrix(
-      this.projectionMatrix,
-      FOV,
-      this.canvas.width / this.canvas.height,
-      0.1,
-      100.0
-    );
-
-    this.renderer.onResize();
-    this.box.onResize();
-  }
-
-  onWheel(event) {
-    event.preventDefault();
-    this.camera.onWheel(event);
-  }
-
-  onMouseMove(event) {
-    var position = Utilities.getMousePosition(event, this.canvas);
-    var normalizedX = position.x / this.canvas.width;
-    var normalizedY = position.y / this.canvas.height;
-
-    this.mouseX = normalizedX * 2.0 - 1.0;
-    this.mouseY = (1.0 - normalizedY) * 2.0 - 1.0;
-
-    this.camera.onMouseMove(event);
-  }
-
-  onMouseDown(event) {
-    this.camera.onMouseDown(event);
-  }
-
-  onMouseUp(event) {
-    this.camera.onMouseUp(event);
-  }
-
   // * compute the number of particles for the current boxes and grid density
   getParticleCount() {
     var gridCells = BOX_X * BOX_Y * BOX_Z * this.settings.gridCellDensity;
@@ -236,11 +196,51 @@ export default class Curl {
     );
 
     this.renderer.draw();
-    this.box.draw();
+    // this.settings.showBox && this.box.draw();
 
     requestAnimationFrame(this.update.bind(this));
 
     this.stats.end();
+  }
+
+  onResize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+
+    Utilities.makePerspectiveMatrix(
+      this.projectionMatrix,
+      FOV,
+      this.canvas.width / this.canvas.height,
+      0.1,
+      100.0
+    );
+
+    this.renderer.onResize();
+    this.box.onResize();
+  }
+
+  onWheel(event) {
+    event.preventDefault();
+    this.camera.onWheel(event);
+  }
+
+  onMouseMove(event) {
+    var position = Utilities.getMousePosition(event, this.canvas);
+    var normalizedX = position.x / this.canvas.width;
+    var normalizedY = position.y / this.canvas.height;
+
+    this.mouseX = normalizedX * 2.0 - 1.0;
+    this.mouseY = (1.0 - normalizedY) * 2.0 - 1.0;
+
+    this.camera.onMouseMove(event);
+  }
+
+  onMouseDown(event) {
+    this.camera.onMouseDown(event);
+  }
+
+  onMouseUp(event) {
+    this.camera.onMouseUp(event);
   }
 }
 
