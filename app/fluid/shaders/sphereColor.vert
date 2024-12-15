@@ -40,6 +40,6 @@ void main() {
     v_speed = length(velocity);
 
     // * 记录初始化位置赋值color
-    // sphereInitPosition = texture2D(u_positionsInitTexture, a_textureCoordinates).rgb;
+    sphereInitPosition = texture2D(u_positionsInitTexture, a_textureCoordinates).rgb;
 
 }

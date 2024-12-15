@@ -15,9 +15,9 @@ void main() {
 
     //* 计算1像素对应的纹理坐标
     vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
-    // vec2 pixelPos = vec2(sphereInitPosition.x * onePixel.y, sphereInitPosition.z * onePixel.x);
-    
-    vec2 pixelPos = vec2(spherePosition.x * onePixel.y, spherePosition.z * onePixel.x);
+    vec2 pixelPos = vec2(sphereInitPosition.x * onePixel.y, sphereInitPosition.z * onePixel.x);
+
+    // vec2 pixelPos = vec2(spherePosition.x * onePixel.y, spherePosition.z * onePixel.x);
 
     vec3 pixelColor = texture2D(u_image, pixelPos).rgb;
 
