@@ -49,6 +49,7 @@ export function calculateForces(particles, h, mu, g) {
     let pressureForce = new THREE.Vector3(0, 0, 0);
     let viscosityForce = new THREE.Vector3(0, 0, 0);
     const gravityForce = new THREE.Vector3(0, -g * particles[i].mass, 0); // Gravity is constant
+    // const gravityForce = new THREE.Vector3(0, 0, -g * particles[i].mass);
 
     // Reset forces
     particles[i].forces.set(0, 0, 0);
@@ -178,6 +179,7 @@ export function calculateForcesOptimized(particles, h, mu, g) {
     let pressureForce = new THREE.Vector3(0, 0, 0);
     let viscosityForce = new THREE.Vector3(0, 0, 0);
     const gravityForce = new THREE.Vector3(0, -g * particles[i].mass, 0);
+    // const gravityForce = new THREE.Vector3(0, 0, -g * particles[i].mass);
     particles[i].forces.set(0, 0, 0);
 
     // Find the cell x, y, z where the particle is located

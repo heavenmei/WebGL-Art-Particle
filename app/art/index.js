@@ -1,10 +1,11 @@
 "use strict";
 import WrappedGL from "../lib/wrappedgl";
 import Camera from "../lib/camera";
-import Utilities from "../lib/utilities";
+import Utilities, { normalize } from "../lib/utilities";
+import * as THREE from "three";
 
-import Renderer from "./renderer.js";
-import Simulator from "./simulator.js";
+// import Renderer from "./renderer.js";
+// import Simulator from "./simulator.js";
 import Box, { BOX_X, BOX_Y, BOX_Z, BORDER } from "./box.js";
 
 import Stats from "stats.js";
@@ -17,7 +18,7 @@ const BOX = [
   [BOX_X, BOX_Y, 2],
 ];
 
-export default class Curl {
+export default class Art {
   //using gridCellDensity ensures a linear relationship to particle count ，simulation grid cell density per world space unit volume
   // todo
   lastTime = 0.0;
@@ -41,7 +42,7 @@ export default class Curl {
     wgl ? console.log("=== WebGL init", wgl) : alert("WebGL not supported");
 
     window.wgl = wgl;
-    this.initGui();
+
     this.projectionMatrix = Utilities.makePerspectiveMatrix(
       new Float32Array(16),
       FOV,
@@ -51,13 +52,19 @@ export default class Curl {
     );
     this.camera = new Camera(
       this.canvas,
-      [BOX_X / 2, BOX_Y / 2, BOX_Z / 2],
+      // [BOX_X / 2, BOX_Y / 2, 0],
+      [0, 0, 0],
       40.0,
       0,
       0
     );
+    // * add lights
+    // x = 0.5 光线是从右往左照，y = 0.7 光线从上方往下照， z = 1 说明光线从在场景前方。
+    this.directionLight = normalize([0.5, 0.7, 1]);
 
-    this.gridDimensions = [BOX_X, BOX_Y, BOX_Z];
+    this.initGui();
+
+    // this.gridDimensions = [BOX_X, BOX_Y, BOX_Z];
 
     this.quadVertexBuffer = wgl.createBuffer();
     wgl.bufferData(
@@ -71,20 +78,8 @@ export default class Curl {
       this.canvas,
       this.wgl,
       this.projectionMatrix,
-      this.camera
-    );
-
-    this.simulator = new Simulator(this.canvas, this.wgl, this.image);
-
-    this.renderer = new Renderer(
-      this.canvas,
-      this.wgl,
-      this.projectionMatrix,
       this.camera,
-      this.gridDimensions,
-      BOX[1],
-      this.simulator,
-      this.image
+      this.directionLight
     );
 
     this.start();
@@ -128,61 +123,14 @@ export default class Curl {
     renderingFolder.add(settings, "count").name("Particles Count").listen();
     renderingFolder.addColor(settings, "specularColor").name("Specular Color");
 
-    this.settings.count = this.getParticleCount().toFixed(0);
+    // this.settings.count = this.getParticleCount().toFixed(0);
 
     simulationFolder.open();
     renderingFolder.open();
   }
 
-  // * compute the number of particles for the current boxes and grid density
-  getParticleCount() {
-    var gridCells = BOX_X * BOX_Y * BOX_Z * this.settings.gridCellDensity;
-
-    //assuming x:y:z ratio of 2:1:1
-    var gridResolutionY = Math.ceil(Math.pow(gridCells / 2, 1.0 / 3.0));
-    var gridResolutionZ = gridResolutionY * 1;
-    var gridResolutionX = gridResolutionY * 2;
-
-    var totalGridCells = gridResolutionX * gridResolutionY * gridResolutionZ;
-
-    this.totalVolume = computeVolume(BOX[0], BOX[1]);
-
-    var fractionFilled = this.totalVolume / (BOX_X * BOX_Y * BOX_Z);
-
-    var desiredParticleCount =
-      fractionFilled * totalGridCells * PARTICLES_PER_CELL; //theoretical number of particles
-
-    return desiredParticleCount;
-  }
-
   start() {
     this.onResize();
-
-    // * generate initial particle positions
-    var desiredParticleCount = this.getParticleCount(); //theoretical number of particles
-    var particlesWidth = 512; //we fix particlesWidth
-    var particlesHeight = Math.ceil(desiredParticleCount / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
-
-    var particleCount = particlesWidth * particlesHeight;
-    var particlePositions = [];
-
-    for (var j = 0; j < particleCount; ++j) {
-      var position = randomPoint(BOX[0], BOX[1]);
-      particlePositions.push(position);
-    }
-
-    var gridCells = BOX_X * BOX_Y * BOX_Z * this.settings.gridCellDensity;
-
-    //assuming x:y:z ratio of 2:1:1
-    var gridResolutionY = Math.ceil(Math.pow(gridCells / 2, 1.0 / 3.0));
-    var gridResolutionZ = gridResolutionY * 1;
-    var gridResolutionX = gridResolutionY * 2;
-
-    var sphereRadius = 7.0 / gridResolutionX;
-
-    this.simulator.reset(particlesWidth, particlesHeight, particlePositions);
-
-    this.renderer.reset(particlesWidth, particlesHeight, sphereRadius);
 
     this.update();
   }
@@ -193,22 +141,23 @@ export default class Curl {
     let deltaTime = (currentTime - this.lastTime) / 1000 || 0.0;
     this.lastTime = currentTime;
 
-    this.simulator.simulate(
-      deltaTime,
-      this.settings.speed,
-      this.camera.getPosition()
-    );
+    // this.simulator.simulate(
+    //   deltaTime,
+    //   this.settings.speed,
+    //   this.camera.getPosition()
+    // );
 
     wgl.clear(
       wgl
         .createClearState()
         .bindFramebuffer(null)
-        .clearColor(0.0, 0.0, 0.0, 0.0),
+        .clearColor(0.0, 0.0, 0.0, 0.1),
       wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
     );
 
-    this.renderer.draw();
-    // this.settings.showBox && this.box.draw();
+    // this.renderer.draw();
+
+    this.settings.showBox && this.box.draw();
 
     requestAnimationFrame(this.update.bind(this));
 
@@ -227,8 +176,7 @@ export default class Curl {
       100.0
     );
 
-    this.renderer.onResize();
-    this.box.onResize();
+    // this.renderer.onResize();
   }
 
   onWheel(event) {

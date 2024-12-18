@@ -5,8 +5,9 @@ import Test from "./test";
 import Curl from "./curl";
 import Fluid from "./fluid";
 import SPH from "./sph";
+import Art from "./art";
 
-const TYPE = ["Fluid", "Curl", "Test", "SPH"];
+const TYPE = ["Fluid", "Curl", "Art", "Test", "SPH"];
 const settings = {
   type: localStorage.getItem("WEBGL_TYPE") ?? "Curl",
 };
@@ -37,6 +38,9 @@ const changeTypeCallback = (newValue) => {
       break;
     case "Curl":
       new Curl(gui, image);
+      break;
+    case "Art":
+      new Art(gui, image);
       break;
     case "Test":
       new Test(gui);

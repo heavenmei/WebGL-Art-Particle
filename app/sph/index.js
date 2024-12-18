@@ -62,14 +62,15 @@ class SPH {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x343434);
 
-    this.camera = new THREE.PerspectiveCamera(
+    const camera = (this.camera = new THREE.PerspectiveCamera(
       45,
       window.innerWidth / window.innerHeight,
       0.01,
       1000
-    );
-    this.camera.position.set(0, 0, 10);
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    ));
+    camera.position.set(0, 0, 7);
+
+    const controls = new OrbitControls(this.camera, this.renderer.domElement);
 
     this.scene = new THREE.Scene();
     this.initGui();
@@ -93,7 +94,36 @@ class SPH {
     const gui = this.gui;
     gui.width = 300;
     gui.add(this, "reset").name("Reset");
-    gui.add(this, "play").name("Play/Pause");
+    gui
+      .add(
+        {
+          play: () => {
+            this.settings.timeStep = this.settings.timeStep ? 0 : 0.15;
+          },
+        },
+        "play"
+      )
+      .name("Play/Pause");
+    gui
+      .add(
+        {
+          toggleGravity: () => {
+            settings.gravity = settings.gravity === 0 ? 9 : 0;
+          },
+        },
+        "toggleGravity"
+      )
+      .name("Toggle Gravity");
+    gui
+      .add(
+        {
+          toggleGridOptimization: () => {
+            settings.useGridOptimization = !settings.useGridOptimization;
+          },
+        },
+        "toggleGridOptimization"
+      )
+      .name("Toggle Grid Optimization");
 
     const simulationFolder = gui.addFolder("Simulation");
     simulationFolder.open();
@@ -115,12 +145,13 @@ class SPH {
     renderingFolder.open();
     renderingFolder.add(settings, "sizeScale").name("Size Scale");
     renderingFolder
-      .add(settings, "particlesRoughness", 0, 1)
+      .add(settings, "particlesRoughness", 0, 1, 0.1)
       .name("Roughness")
       .onChange((value) => {
         settings.particlesRoughness = value;
         this.instancedMaterial.roughness = settings.particlesRoughness;
-      });
+      })
+      .listen();
 
     // 质量
     renderingFolder
@@ -141,38 +172,6 @@ class SPH {
         settings.particlesMetalness = value;
         this.instancedMaterial.metalness = settings.particlesMetalness;
       });
-
-    const toggleFolder = gui.addFolder("Toggle");
-    toggleFolder.open();
-    toggleFolder
-      .add(
-        {
-          toggleGravity: () => {
-            settings.gravity = settings.gravity === 0 ? 9 : 0;
-            gui.__controllers
-              .find((c) => c.property === "gravity")
-              .updateDisplay();
-          },
-        },
-        "toggleGravity"
-      )
-      .name("Toggle Gravity");
-
-    // Toggle the grid optimization for the SPH calculations
-    toggleFolder
-      .add(
-        {
-          toggleGridOptimization: () => {
-            settings.useGridOptimization = !settings.useGridOptimization;
-            console.log(
-              "settings.useGridOptimization",
-              settings.useGridOptimization
-            );
-          },
-        },
-        "toggleGridOptimization"
-      )
-      .name("Toggle Grid Optimization");
   }
 
   addLight() {

@@ -522,7 +522,6 @@ export function getCubePositions(size) {
   };
 }
 
-
 /**
  *  we render in a deferred way to a special RGBA texture format
     the format is (normal.x, normal.y, speed, depth)
@@ -657,4 +656,23 @@ export function generateSphereGeometry(iterations) {
     normals: packedNormals,
     indices: indices,
   };
+}
+
+/**
+ * normalizes a vector.
+ * @param {Vector3} v vector to normalize
+ * @param {Vector3} dst optional vector3 to store result
+ * @return {Vector3} dst or new Vector3 if not provided
+ * @memberOf module:webgl-3d-math
+ */
+export function normalize(v, dst) {
+  dst = dst || new Float32Array(3);
+  var length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  // make sure we don't divide by 0.
+  if (length > 0.00001) {
+    dst[0] = v[0] / length;
+    dst[1] = v[1] / length;
+    dst[2] = v[2] / length;
+  }
+  return dst;
 }

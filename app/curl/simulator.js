@@ -1,6 +1,7 @@
 import vertFullscreen from "./shaders/fullscreen.vert";
 import fragFullscreen from "./shaders/fullscreen.frag";
 import fragSimulation from "./shaders/simulation.frag";
+import { BOX_X, BOX_Y, BOX_Z } from "./box";
 
 const BASE_LIFETIME = 10;
 
@@ -229,6 +230,7 @@ class Simulator {
         wgl.TEXTURE_2D,
         this.particlePositionTextureDefault
       )
+      .uniform3f("u_box", BOX_X, BOX_Y, BOX_Z)
       .uniform2f("u_resolution", this.particlesWidth, this.particlesHeight)
       .uniform1f("u_time", this.time)
       .uniform1f("u_speed", speed);

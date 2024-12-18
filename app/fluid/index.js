@@ -12,11 +12,11 @@ const FOV = Math.PI / 3;
 const PARTICLES_PER_CELL = 10;
 
 const GRID_WIDTH = 30,
-  GRID_HEIGHT = 15,
+  GRID_HEIGHT = 10,
   GRID_DEPTH = 20;
 const PRESETS = [
   //dam break
-  [new AABB([0, 12, 0], [30, 15, 20])],
+  [new AABB([0, 9, 0], [30, 10, 20])],
 
   //block drop
   [new AABB([0, 0, 0], [30, 7, 20]), new AABB([12, 12, 5], [28, 15, 15])],
@@ -160,7 +160,7 @@ class Fluid {
       GRID_WIDTH * GRID_HEIGHT * GRID_DEPTH * this.settings.gridCellDensity;
 
     //assuming x:y:z ratio of 2:1:1
-    var gridResolutionY = Math.ceil(Math.pow(gridCells / 2, 1.0 / 3.0));
+    var gridResolutionY = Math.ceil(Math.pow(gridCells , 1.0 / 3.0));
     var gridResolutionZ = gridResolutionY * 1;
     var gridResolutionX = gridResolutionY * 2;
 
