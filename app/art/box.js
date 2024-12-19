@@ -4,41 +4,41 @@ import fragBox from "./shaders/box.frag";
 import * as THREE from "three";
 
 export const BORDER = 1;
-export const BOX_X = 30,
-  BOX_Y = 4,
-  BOX_Z = 40;
+export const BOX_X = 30;
+export const BOX_Y = 10;
+export const BOX_Z = 20;
 
 const BOX_COLOR = [0.9, 0.9, 0.9, 1.0];
 const BOX = [
   {
     // font
-    translate: [0, 0, BOX_Z / 2],
-    size: [BOX_X + BORDER, BOX_Y, BORDER],
+    translate: [0, 0, BOX_Z / 2 + BORDER],
+    size: [BOX_X + BORDER * 3, BOX_Y + BORDER * 2, BORDER],
   },
   {
     // behind
-    translate: [0, 0, -BOX_Z / 2],
-    size: [BOX_X + BORDER, BOX_Y + BORDER, BORDER],
+    translate: [0, 0, -BOX_Z / 2 - BORDER],
+    size: [BOX_X + BORDER * 3, BOX_Y + BORDER * 2, BORDER],
   },
   // {
   //   // top
-  //   translate: [0, BOX_Y / 2, 0],
-  //   size: [BOX_X + BORDER, BORDER, BOX_Z],
+  //   translate: [0, BOX_Y / 2 + BORDER, 0],
+  //   size: [BOX_X + BORDER * 3, BORDER, BOX_Z + BORDER * 3],
   // },
   {
     // bottom
-    translate: [0, -BOX_Y / 2, 0],
-    size: [BOX_X + BORDER, BORDER, BOX_Z],
+    translate: [0, -BOX_Y / 2 - BORDER, 0],
+    size: [BOX_X + BORDER * 3, BORDER, BOX_Z + BORDER * 3],
   },
   {
     // right
-    translate: [BOX_X / 2, 0, 0],
-    size: [BORDER, BOX_Y, BOX_Z],
+    translate: [BOX_X / 2 + BORDER, 0, 0],
+    size: [BORDER, BOX_Y + BORDER * 2, BOX_Z + BORDER * 2],
   },
   {
     // left
-    translate: [-BOX_X / 2, 0, 0],
-    size: [BORDER, BOX_Y, BOX_Z],
+    translate: [-BOX_X / 2 - BORDER, 0, 0],
+    size: [BORDER, BOX_Y + BORDER * 2, BOX_Z + BORDER * 2],
   },
 ];
 
@@ -82,7 +82,7 @@ class Box {
     let wgl = this.wgl;
 
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    console.log("geometry", geometry);
+    // console.log("geometry", geometry);
 
     this.cubeVertexBuffer = wgl.createBuffer();
     wgl.bufferData(
@@ -164,22 +164,6 @@ class Box {
 
       wgl.drawElements(boxDrawState, wgl.TRIANGLES, 36, wgl.UNSIGNED_SHORT);
     }
-  }
-
-  drawTmpTexture(texture) {
-    let wgl = this.wgl;
-    wgl.clear(
-      wgl.createClearState().bindFramebuffer(null).clearColor(0, 0, 0, 0),
-      wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
-    );
-    var drawState = wgl
-      .createDrawState()
-      .bindFramebuffer(null)
-      .viewport(0, 0, this.canvas.width, this.canvas.height)
-      .useProgram(this.fullscreenTextureProgram)
-      .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, false, 0, 0)
-      .uniformTexture("u_input", 0, wgl.TEXTURE_2D, texture);
-    wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
   draw(framebuffer) {

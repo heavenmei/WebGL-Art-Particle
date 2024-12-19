@@ -20,8 +20,8 @@ export default class Camera {
     this.azimuth = azimuth; // 左右角度
     this.elevation = elevation; // 上下角度
 
-    this.minElevation = -Math.PI / 4;
-    this.maxElevation = Math.PI / 4;
+    this.minElevation = -Math.PI / 2;
+    this.maxElevation = Math.PI / 2;
 
     this.currentMouseX = 0;
     this.currentMouseY = 0;
