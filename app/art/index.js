@@ -3,7 +3,7 @@ import WrappedGL from "../lib/wrappedgl.js";
 import Camera from "../lib/camera.js";
 import Utilities, { normalize } from "../lib/utilities.js";
 
-import Box, { BOX_X, BOX_Y, BOX_Z, SIMULATOR_BOX } from "./box.js";
+import Box, { BOX_X, BOX_Y, BOX_Z } from "./box.js";
 import Renderer from "./renderer.js";
 import Simulator from "./simulator.js";
 import Stats from "stats.js";
@@ -18,12 +18,19 @@ class Fluid {
   settings = {
     showBox: true,
 
-    sphereRadius: 0.5,
+    sphereRadius: 0.3,
     particleCount: 0,
     desiredParticleCount: 70000,
     gridCellDensity: 6,
 
-    timeStep: 0,
+    timeStep: 0.0,
+    lifetime: 10.0,
+    flipScale: 0.0,
+    curlScale: 1.0,
+    // curlPositionScale: 0.1,
+    // curlTimeScale: 0.001,
+    // curlPersistence: 0.01,
+    // curlDieSpeed: 0.04,
   };
 
   //mouse position is in [-1, 1]
@@ -50,10 +57,19 @@ class Fluid {
       0.1,
       100.0
     );
-    this.camera = new Camera(this.canvas, [BOX_X / 2, BOX_Y / 2, BOX_Z / 2]);
+    this.camera = new Camera(
+      this.canvas,
+      [BOX_X / 2, BOX_Y / 2, BOX_Z / 2],
+      40,
+      0,
+      0.5
+    );
 
     // * add lights x = 0.5 光线是从右往左照，y = 0.7 光线从上方往下照， z = 1 说明光线从在场景前方。
     this.directionLight = normalize([0.5, 0.7, 1]);
+
+    this.loadPrograms();
+    this.initGui();
 
     this.box = new Box(
       this.canvas,
@@ -63,7 +79,7 @@ class Fluid {
       this.directionLight
     );
 
-    this.simulator = new Simulator(this.wgl, this.image);
+    this.simulator = new Simulator(this.wgl, this.settings);
 
     this.gridDimensions = [BOX_X, BOX_Y, BOX_Z];
     this.renderer = new Renderer(
@@ -84,9 +100,6 @@ class Fluid {
       wgl.STATIC_DRAW
     );
 
-    this.loadPrograms();
-    this.initGui();
-
     /** init */
     canvas.addEventListener("wheel", this.onWheel.bind(this));
     canvas.addEventListener("mousemove", this.onMouseMove.bind(this));
@@ -97,6 +110,10 @@ class Fluid {
 
     this.reset();
     this.update();
+
+    setTimeout(() => {
+      this.settings.timeStep = 0.02;
+    }, 0);
   }
 
   loadPrograms() {
@@ -136,7 +153,7 @@ class Fluid {
     const simulationFolder = gui.addFolder("Simulation");
     simulationFolder.open();
     simulationFolder
-      .add(settings, "timeStep", 0.0, 0.4, 0.01)
+      .add(settings, "timeStep", 0.0, 0.1, 0.001)
       .name("Time Step")
       .listen();
     simulationFolder
@@ -158,6 +175,13 @@ class Fluid {
       .add(settings, "gridCellDensity", 0.0, 1.0, 0.1)
       .name("density")
       .listen();
+    simulationFolder
+      .add(settings, "lifetime", 0.0, 1.0, 0.1)
+      .name("lifetime")
+      .listen();
+
+    simulationFolder.add(settings, "curlScale", 0, 1, 0.1).name("Curl Noise");
+    simulationFolder.add(settings, "flipScale", 0, 1, 0.1).name("PIC/FLIP");
 
     const renderingFolder = gui.addFolder("Rendering");
     renderingFolder.open();
@@ -214,10 +238,10 @@ class Fluid {
     wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  update(currentTime) {
+  update(currentTime = 0) {
     this.stats.begin();
-    let deltaTime = (currentTime - this.lastTime) / 1000 || 0.0;
-    this.lastTime = currentTime;
+    // let deltaTime = (currentTime - this.lastTime) / 1000 || 0.0;
+    // this.lastTime = currentTime;
 
     const { mouseVelocity, worldSpaceMouseRay } = this.getMouse();
     this.simulator.simulate(

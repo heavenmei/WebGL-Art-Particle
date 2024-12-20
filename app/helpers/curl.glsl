@@ -4,7 +4,7 @@ precision highp float;
 
 const int OCTAVES = 3;
 
-vec3 curl(vec3 p, float noiseTime, float persistence) {
+vec3 curl(vec3 noisePosition, float noiseTime, float persistence) {
 
     vec4 xNoisePotentialDerivatives = vec4(0.0);
     vec4 yNoisePotentialDerivatives = vec4(0.0);
@@ -18,9 +18,9 @@ vec3 curl(vec3 p, float noiseTime, float persistence) {
         if(persistence == 0.0 && i == 0) {
             noiseScale = 1.0;
         }
-        xNoisePotentialDerivatives += simplexNoiseDerivatives(vec4(p * twoPowI, noiseTime)) * noiseScale;
-        yNoisePotentialDerivatives += simplexNoiseDerivatives(vec4((p + vec3(123.4, 129845.6, -1239.1)) * twoPowI, noiseTime)) * noiseScale;
-        zNoisePotentialDerivatives += simplexNoiseDerivatives(vec4((p + vec3(-9519.0, 9051.0, -123.0)) * twoPowI, noiseTime)) * noiseScale;
+        xNoisePotentialDerivatives += simplexNoiseDerivatives(vec4(noisePosition * twoPowI, noiseTime)) * noiseScale;
+        yNoisePotentialDerivatives += simplexNoiseDerivatives(vec4((noisePosition + vec3(123.4, 129845.6, -1239.1)) * twoPowI, noiseTime)) * noiseScale;
+        zNoisePotentialDerivatives += simplexNoiseDerivatives(vec4((noisePosition + vec3(-9519.0, 9051.0, -123.0)) * twoPowI, noiseTime)) * noiseScale;
     }
 
     return vec3(zNoisePotentialDerivatives[1] - yNoisePotentialDerivatives[2], xNoisePotentialDerivatives[2] - zNoisePotentialDerivatives[0], yNoisePotentialDerivatives[0] - xNoisePotentialDerivatives[1]);

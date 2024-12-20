@@ -1,3 +1,13 @@
+/** PIC/FLIP流体模拟器
+ * 1. 粒子到网格(Particle-to-Grid)：粒子信息被投影到3D格子上，形成速度场。transfer particle velocities to velocity grid
+ * 2. 复制网格(Copy-Grid)：保存当前状态以供后续计算。 save this velocity grid
+ * 3. 标记细胞(Mark-Cells)：识别网格中的固体、液体和空气区域。
+ * 4. 重力更新(Gravity-Update)：对流体施加重力影响。
+ * 5. 压力求解(Pressure-Solve)：通过预条件共轭梯度法解决系统的非零散度问题。 solve velocity grid for non divergence
+ * 6. 速度外推(Velocity Extrapolation)：将流体速度推至边界。
+ * 7. 网格到粒子(Grid-to-Particle)：将更新后的速度信息反投影回粒子。
+ * 8. advect particles through the grid velocity field
+ */
 import vertTransfertogrid from "./shaders/transfertogrid.vert";
 import fragTransfertogrid from "./shaders/transfertogrid.frag";
 import vertFullscreen from "./shaders/fullscreen.vert";
@@ -14,19 +24,9 @@ import fragSubtract from "./shaders/subtract.frag";
 import fragAdvect from "./shaders/advect.frag";
 import fragCopy from "./shaders/copy.frag";
 
-import { BOX_X, BOX_Y, BOX_Z, SIMULATOR_BOX } from "./box";
+import { BOX_X, BOX_Y, BOX_Z, SIMULATOR_BOX } from "./box.js";
 const gridSize = [BOX_X, BOX_Y, BOX_Z];
-/**
- * PIC/FLIP流体模拟器
- * 1. 粒子到网格(Particle-to-Grid)：粒子信息被投影到3D格子上，形成速度场。transfer particle velocities to velocity grid
- * 2. 复制网格(Copy-Grid)：保存当前状态以供后续计算。 save this velocity grid
- * 3. 标记细胞(Mark-Cells)：识别网格中的固体、液体和空气区域。
- * 4. 重力更新(Gravity-Update)：对流体施加重力影响。
- * 5. 压力求解(Pressure-Solve)：通过预条件共轭梯度法解决系统的非零散度问题。 solve velocity grid for non divergence
- * 6. 速度外推(Velocity Extrapolation)：将流体速度推至边界。
- * 7. 网格到粒子(Grid-to-Particle)：将更新后的速度信息反投影回粒子。
- * 8. advect particles through the grid velocity field
- */
+
 class Simulator {
   particlesWidth = 0;
   particlesHeight = 0;
@@ -49,10 +49,11 @@ class Simulator {
 
   flipness = 0.99; //0 is full PIC, 1 is full FLIP
   frameNumber = 0; //used for motion randomness
+  time = 0.0;
 
-  constructor(wgl, image) {
+  constructor(wgl, settings) {
     this.wgl = wgl;
-    this.image = image;
+    this.settings = settings;
 
     this.halfFloatExt = this.wgl.getExtension("OES_texture_half_float");
     this.wgl.getExtension("OES_texture_half_float_linear");
@@ -71,7 +72,7 @@ class Simulator {
 
     this.particlePositionTexture = wgl.createTexture();
     this.particlePositionTextureTemp = wgl.createTexture();
-    this.particleInitPositionTexture = wgl.createTexture();
+    this.particlePositionTextureOriginal = wgl.createTexture();
 
     this.particleVelocityTexture = wgl.createTexture();
     this.particleVelocityTextureTemp = wgl.createTexture();
@@ -192,21 +193,19 @@ class Simulator {
       particlePositionsData[i * 4] = Math.random() * SIMULATOR_BOX[0];
       particlePositionsData[i * 4 + 1] = Math.random() * SIMULATOR_BOX[1];
       particlePositionsData[i * 4 + 2] = Math.random() * SIMULATOR_BOX[2];
-      particlePositionsData[i * 4 + 3] = 0.0;
+      particlePositionsData[i * 4 + 3] = Math.random() * this.settings.lifetime;
 
       var theta = Math.random() * 2.0 * Math.PI;
       var u = Math.random() * 2.0 - 1.0;
       particleRandoms[i * 4] = Math.sqrt(1.0 - u * u) * Math.cos(theta);
       particleRandoms[i * 4 + 1] = Math.sqrt(1.0 - u * u) * Math.sin(theta);
       particleRandoms[i * 4 + 2] = u;
-      particleRandoms[i * 4 + 3] = 0.0;
+      particleRandoms[i * 4 + 3] = Math.random() * this.settings.lifetime;
     }
-
-    // console.log("particlePositionTexture===", particlePositionsData);
 
     // * position
     wgl.rebuildTexture(
-      this.particleInitPositionTexture,
+      this.particlePositionTextureOriginal,
       wgl.RGBA,
       wgl.FLOAT,
       this.particlesWidth,
@@ -217,7 +216,6 @@ class Simulator {
       wgl.NEAREST,
       wgl.NEAREST
     );
-
     wgl.rebuildTexture(
       this.particlePositionTexture,
       wgl.RGBA,
@@ -268,7 +266,6 @@ class Simulator {
       wgl.NEAREST,
       wgl.NEAREST
     );
-
     wgl.rebuildTexture(
       this.particleRandomTexture,
       wgl.RGBA,
@@ -283,7 +280,6 @@ class Simulator {
     );
 
     // * create simulation textures
-
     wgl.rebuildTexture(
       this.velocityTexture,
       wgl.RGBA,
@@ -384,8 +380,7 @@ class Simulator {
     );
   }
 
-  /**
-   * 1. Two Steps: transfer particle velocities to grid
+  /** 1. Two Steps: transfer particle velocities to grid
    * 1.1. Accumulate weight * velocity -> tempVelocityTexture and then weight -> weightTexture
    */
   transferToGrid() {
@@ -460,7 +455,7 @@ class Simulator {
         transferToGridDrawState,
         wgl.POINTS,
         0,
-        this.particlesWidth * this.particlesHeight
+        this.particleCount
       );
     }
 
@@ -486,7 +481,7 @@ class Simulator {
         transferToGridDrawState,
         wgl.POINTS,
         0,
-        this.particlesWidth * this.particlesHeight
+        this.particleCount
       );
     }
   }
@@ -606,12 +601,7 @@ class Simulator {
         this.particlePositionTexture
       );
 
-    wgl.drawArrays(
-      markDrawState,
-      wgl.POINTS,
-      0,
-      this.particlesWidth * this.particlesHeight
-    );
+    wgl.drawArrays(markDrawState, wgl.POINTS, 0, this.particleCount);
   }
 
   // 4. add forces to velocity grid
@@ -934,8 +924,10 @@ class Simulator {
     wgl.drawArrays(transferToParticlesDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  // 8. advect particle positions with velocity grid using RK2
-  advect(timeStep) {
+  // 8. advect particle positions with velocity grid using RK2 + noise
+  advect(timeStep, deltaTime) {
+    this.time += deltaTime;
+
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
       wgl.FRAMEBUFFER,
@@ -956,7 +948,7 @@ class Simulator {
 
       .vertexAttribPointer(
         this.quadVertexBuffer,
-        0,
+        this.advectProgram.getAttribLocation("a_position"),
         2,
         wgl.FLOAT,
         wgl.FALSE,
@@ -978,6 +970,12 @@ class Simulator {
         this.particleRandomTexture
       )
       .uniformTexture("u_velocityGrid", 2, wgl.TEXTURE_2D, this.velocityTexture)
+      .uniformTexture(
+        "u_particleTextureOriginal",
+        3,
+        wgl.TEXTURE_2D,
+        this.particlePositionTextureOriginal
+      )
       .uniform3f(
         "u_gridResolution",
         this.gridResolutionX,
@@ -985,6 +983,9 @@ class Simulator {
         this.gridResolutionZ
       )
       .uniform3f("u_gridSize", this.gridWidth, this.gridHeight, this.gridDepth)
+      .uniform1f("u_curlScale", this.settings.curlScale)
+      .uniform1f("u_flipScale", this.settings.flipScale)
+      .uniform1f("u_time", this.time)
       .uniform1f("u_timeStep", timeStep)
       .uniform1f("u_frameNumber", this.frameNumber)
       .uniform2f(
@@ -996,8 +997,7 @@ class Simulator {
     wgl.drawArrays(advectDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  /**
-   * 计算模拟的位置
+  /** 计算模拟的位置
    * Call reset() before simulating
    * @param {number} timeStep
    * @param {[number,number,number]} mouseVelocity
@@ -1007,9 +1007,10 @@ class Simulator {
    */
   simulate(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection) {
     if (timeStep === 0.0) return;
-
     this.frameNumber += 1;
+    const dt = Math.random() * 0.1 + 0.1;
 
+    // * PIC/FLIP
     this.transferToGrid();
     this.normalize();
     this.copyDraw();
@@ -1030,7 +1031,7 @@ class Simulator {
     this.transferToParticles();
     swap(this, "particleVelocityTextureTemp", "particleVelocityTexture");
 
-    this.advect(timeStep);
+    this.advect(timeStep, dt);
     swap(this, "particlePositionTextureTemp", "particlePositionTexture");
   }
 }

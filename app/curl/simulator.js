@@ -16,7 +16,6 @@ class Simulator {
     this.wgl = wgl;
     this.image = image;
 
-    // todo
     this.halfFloatExt = this.wgl.getExtension("OES_texture_half_float");
     this.wgl.getExtension("OES_texture_half_float_linear");
     this.simulationNumberType = this.halfFloatExt.HALF_FLOAT_OES;
@@ -31,9 +30,6 @@ class Simulator {
     );
 
     this.simulationFramebuffer = wgl.createFramebuffer();
-
-    this.particleVertexBuffer = wgl.createBuffer();
-    this.particleVelocityTexture = wgl.createTexture();
 
     this.particlePositionTexture = wgl.createTexture();
     this.particlePositionTextureTemp = wgl.createTexture();
@@ -94,20 +90,11 @@ class Simulator {
     var particlePositionsData = new Float32Array(
       this.particlesWidth * this.particlesHeight * 4
     );
-    var particleRandoms = new Float32Array(
-      this.particlesWidth * this.particlesHeight * 4
-    );
     for (var i = 0; i < this.particlesWidth * this.particlesHeight; ++i) {
       particlePositionsData[i * 4] = particlePositions[i][0];
       particlePositionsData[i * 4 + 1] = particlePositions[i][1];
       particlePositionsData[i * 4 + 2] = particlePositions[i][2];
       particlePositionsData[i * 4 + 3] = Math.random() * BASE_LIFETIME;
-
-      // particleRandoms[i * 4] = particlePositions[i][0] * SPAWN_RADIUS;
-      // particleRandoms[i * 4 + 1] = particlePositions[i][1] * SPAWN_RADIUS;
-      // particleRandoms[i * 4 + 2] = particlePositions[i][2] * SPAWN_RADIUS;
-      // particleRandoms[i * 4 + 3] =
-      //   BASE_LIFETIME + Math.random() * BASE_LIFETIME;
     }
     // console.log("=== particlePositionsData", particlePositionsData);
 
@@ -148,20 +135,6 @@ class Simulator {
       wgl.NEAREST,
       wgl.NEAREST
     );
-
-    wgl.rebuildTexture(
-      this.particleVelocityTexture,
-      wgl.RGBA,
-      this.simulationNumberType,
-      this.particlesWidth,
-      this.particlesHeight,
-      null,
-      wgl.CLAMP_TO_EDGE,
-      wgl.CLAMP_TO_EDGE,
-      wgl.NEAREST,
-      wgl.NEAREST
-    );
-    // * create simulation textures
   }
 
   /**
@@ -202,7 +175,8 @@ class Simulator {
     let simulationDrawState = wgl
       .createDrawState()
       .bindFramebuffer(this.simulationFramebuffer)
-      .viewport(0, 0, this.canvas.width, this.canvas.height)
+      // .viewport(0, 0, this.canvas.width, this.canvas.height)
+      .viewport(0, 0, this.particlesWidth, this.particlesHeight)
 
       .disable(wgl.DEPTH_TEST)
       .disable(wgl.BLEND)
@@ -238,7 +212,9 @@ class Simulator {
     wgl.drawArrays(simulationDrawState, wgl.TRIANGLE_STRIP, 0, 4);
 
     //swap A and B
-    swap(this, "particlePositionTexture", "particlePositionTextureTemp");
+    // swap(this, "particlePositionTexture", "particlePositionTextureTemp");
+    swap(this, "particlePositionTextureTemp", "particlePositionTexture");
+
     // this.drawTmpTexture(this.particlePositionTexture);
     // this.drawTmpTexture(this.particlePositionTextureTemp);
   }

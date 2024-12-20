@@ -173,7 +173,7 @@ class Renderer {
   }
 
   /**
-   * 画一个球体, draw rendering data (normal, speed, depth)
+   * 画一个球体, save rendering data (normal, speed, depth)
    * @param {*} projectionMatrix - 投影矩阵
    * @param {*} viewMatrix - 视图矩阵
    */
