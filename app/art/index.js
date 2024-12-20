@@ -37,8 +37,7 @@ class ART {
   lastMousePlaneX = 0;
   lastMousePlaneY = 0;
 
-  constructor(gui, image) {
-    this.image = image;
+  constructor(gui, image, video) {
     this.gui = gui;
 
     var canvas = (this.canvas = document.getElementById("canvas"));
@@ -86,8 +85,9 @@ class ART {
       this.camera,
       this.gridDimensions,
       this.simulator,
-      this.image,
-      this.settings
+      this.settings,
+      // image,
+      video
     );
 
     this.quadVertexBuffer = wgl.createBuffer();

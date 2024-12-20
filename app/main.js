@@ -7,15 +7,20 @@ import Fluid from "./fluid";
 import SPH from "./sph";
 import Art from "./art";
 
+import artImage from "../assets/images/art.jpg";
+
 const TYPE = ["Fluid", "Curl", "Art", "Test", "SPH"];
 const settings = {
   type: localStorage.getItem("WEBGL_TYPE") ?? "Curl",
 };
 
-var imageDom = document.getElementById("image-target");
-let image = new Image();
-image.src = imageDom.src;
-image.onload = main;
+const image = new Image();
+image.src = artImage;
+image.onload = () => changeTypeCallback(settings.type);
+document.getElementById("images").src = artImage;
+
+const video = document.getElementById("myVideo");
+// video.onplay = () => changeTypeCallback(settings.type);
 
 const changeTypeCallback = (newValue) => {
   if (localStorage.getItem("WEBGL_TYPE") != newValue) {
@@ -40,7 +45,7 @@ const changeTypeCallback = (newValue) => {
       new Curl(gui, image);
       break;
     case "Art":
-      new Art(gui, image);
+      new Art(gui, image, video);
       break;
     case "Test":
       new Test(gui);
@@ -50,7 +55,3 @@ const changeTypeCallback = (newValue) => {
       break;
   }
 };
-
-function main() {
-  changeTypeCallback(settings.type);
-}

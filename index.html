@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>three.js template</title>
+    <title>WebGL-Art-Particle</title>
     <meta charset="UTF-8" />
 
     <link rel="stylesheet" href="./style.css" />
@@ -10,9 +10,12 @@
     <canvas id="canvas"></canvas>
 
     <div id="side-panel"></div>
-    <div id="images">
-      <img src="./images/art.jpg" id="image-target" />
-    </div>
+
+    <img id="images" />
+    <video id="myVideo" width="240" height="240" autoplay loop muted>
+      <source src="./assets/video/sea.mp4" type="video/mp4" />
+      你的浏览器不支持HTML5视频。
+    </video>
 
     <div class="fluid">
       <span>Space + drag</span> to rotate camera <br />

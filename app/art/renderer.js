@@ -29,16 +29,16 @@ class Renderer {
     camera,
     gridDimensions,
     simulator,
-    image,
-    settings
+    settings,
+    image
   ) {
     this.canvas = canvas;
     this.wgl = wgl;
     this.projectionMatrix = projectionMatrix;
     this.camera = camera;
     this.simulator = simulator;
-    this.image = image;
     this.settings = settings;
+    this.image = image;
 
     this.wgl.getExtension("OES_texture_float");
     this.wgl.getExtension("OES_texture_float_linear");
@@ -131,7 +131,7 @@ class Renderer {
     // * add lights x = 0.5 光线是从右往左照，y = 0.7 光线从上方往下照， z = 1 说明光线从在场景前方。
     this.directionLight = normalize([0.5, 0.7, 1]);
 
-    console.log("💡 ", this.directionLight, this.lightProjectionViewMatrix);
+    // console.log("💡 ", this.directionLight, this.lightProjectionViewMatrix);
 
     this.box = new Box(
       this.canvas,
@@ -425,7 +425,7 @@ class Renderer {
         wgl.TEXTURE_2D,
         this.simulator.particlePositionTextureOriginal
       )
-      .uniform2f("u_textureSize", BOX_X, BOX_Z)
+      .uniform2f("u_textureSize", BOX_Z, BOX_X)
       .uniform1f("u_sphereRadius", this.sphereRadius);
 
     wgl.drawElementsInstancedANGLE(
@@ -743,6 +743,32 @@ class Renderer {
     const projectionMatrix = this.projectionMatrix;
     const viewMatrix = this.camera.getViewMatrix();
     const fov = 2.0 * Math.atan(1.0 / projectionMatrix[5]);
+
+    // 视频采样 readyState >= 2 表示视频已准备好
+    if (
+      this.image instanceof HTMLVideoElement &&
+      this.image &&
+      this.image.readyState >= 2
+    ) {
+      wgl
+        .texImage2D(
+          wgl.TEXTURE_2D,
+          this.imageTexture,
+          0,
+          wgl.RGBA,
+          wgl.RGBA,
+          wgl.UNSIGNED_BYTE,
+          this.image
+        )
+        .setTextureFiltering(
+          wgl.TEXTURE_2D,
+          this.imageTexture,
+          wgl.CLAMP_TO_EDGE,
+          wgl.CLAMP_TO_EDGE,
+          wgl.NEAREST,
+          wgl.NEAREST
+        );
+    }
 
     this.drawSphere(projectionMatrix, viewMatrix);
     this.drawColorSphere(projectionMatrix, viewMatrix);
