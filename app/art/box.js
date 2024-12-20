@@ -7,7 +7,6 @@ export const BORDER = 1;
 export const BOX_X = 30;
 export const BOX_Y = 10;
 export const BOX_Z = 20;
-export const SIMULATOR_BOX = [BOX_X, 1, BOX_Z];
 
 const BOX_COLOR = [0.9, 0.9, 0.9, 1.0];
 const BOX = [
@@ -165,19 +164,6 @@ class Box {
 
       wgl.drawElements(boxDrawState, wgl.TRIANGLES, 36, wgl.UNSIGNED_SHORT);
     }
-  }
-
-  draw(framebuffer) {
-    // let wgl = this.wgl;
-    // wgl.clear(
-    //   wgl
-    //     .createClearState()
-    //     .bindFramebuffer(null)
-    //     .clearColor(0.0, 0.0, 0.0, 0.0),
-    //   wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
-    // );
-    this.drawBoxes(framebuffer);
-    // this.drawTmpTexture(this.boxTexture);
   }
 }
 

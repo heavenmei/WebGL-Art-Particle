@@ -24,7 +24,7 @@ import fragSubtract from "./shaders/subtract.frag";
 import fragAdvect from "./shaders/advect.frag";
 import fragCopy from "./shaders/copy.frag";
 
-import { BOX_X, BOX_Y, BOX_Z, SIMULATOR_BOX } from "./box.js";
+import { BOX_X, BOX_Y, BOX_Z } from "./box.js";
 const gridSize = [BOX_X, BOX_Y, BOX_Z];
 
 class Simulator {
@@ -187,6 +187,8 @@ class Simulator {
     );
 
     // * generate initial particle positions amd create particle position texture for them
+
+    const SIMULATOR_BOX = [BOX_X, this.settings.sphereRadius / 2, BOX_Z];
     let particlePositionsData = new Float32Array(this.particleCount * 4);
     let particleRandoms = new Float32Array(this.particleCount * 4);
     for (let i = 0; i < this.particleCount; ++i) {

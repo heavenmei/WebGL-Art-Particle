@@ -24,7 +24,7 @@ uniform vec2 u_particlesResolution;
 const float NOISE_POSITION_SCALE = 0.1;
 const float NOISE_TIME_SCALE = 0.01;
 const float PERSISTENCE = 0.2;
-const float DIE_SPEED = 0.04;
+const float DIE_SPEED = 0.1;
 
 #pragma glslify: texture3D = require(../../helpers/texture3D.glsl)
 #pragma glslify: curl = require(../../helpers/curl.glsl)
@@ -61,7 +61,7 @@ void main() {
 
     vec3 step = halfwayVelocity * u_timeStep * u_flipScale;
 
-    // step += 0.05 * randomDirection * length(velocity) * u_timeStep;
+    step += 0.05 * randomDirection * length(velocity) * u_timeStep;
     // step = clamp(step, -vec3(1.0), vec3(1.0)); //enforce CFL condition
 
     // * curl noise
@@ -69,6 +69,7 @@ void main() {
     vec3 curlPosition = noiseVelocity * u_timeStep * u_curlScale;
 
     vec3 newPosition = position + step + curlPosition;
+    // vec3 newPosition = position + step;
 
     // * 边界限制
     newPosition = clamp(newPosition, vec3(0.01), u_gridSize - 0.01);
@@ -79,6 +80,7 @@ void main() {
         vec4 defaultPosition = texture2D(u_particleTextureOriginal, v_coordinates);
         newPosition = defaultPosition.rgb;
         life = defaultPosition.a;
+        // discard; // 粒子生命周期结束，不渲染
     }
 
     gl_FragColor = vec4(newPosition, life);

@@ -13,24 +13,21 @@ import fragFullscreen from "./shaders/fullscreen.frag";
 
 const FOV = Math.PI / 3;
 const PARTICLES_PER_CELL = 10;
+const DEFAULT_SPEED = 0.02;
 
-class Fluid {
+class ART {
   settings = {
     showBox: true,
 
-    sphereRadius: 0.3,
+    sphereRadius: 0.2,
     particleCount: 0,
-    desiredParticleCount: 70000,
+    desiredParticleCount: 20000,
     gridCellDensity: 6,
 
     timeStep: 0.0,
     lifetime: 10.0,
-    flipScale: 0.0,
-    curlScale: 1.0,
-    // curlPositionScale: 0.1,
-    // curlTimeScale: 0.001,
-    // curlPersistence: 0.01,
-    // curlDieSpeed: 0.04,
+    flipScale: 1.0,
+    curlScale: 0.0,
   };
 
   //mouse position is in [-1, 1]
@@ -89,7 +86,8 @@ class Fluid {
       this.camera,
       this.gridDimensions,
       this.simulator,
-      this.image
+      this.image,
+      this.settings
     );
 
     this.quadVertexBuffer = wgl.createBuffer();
@@ -112,7 +110,7 @@ class Fluid {
     this.update();
 
     setTimeout(() => {
-      this.settings.timeStep = 0.02;
+      this.settings.timeStep = DEFAULT_SPEED;
     }, 0);
   }
 
@@ -153,11 +151,11 @@ class Fluid {
     const simulationFolder = gui.addFolder("Simulation");
     simulationFolder.open();
     simulationFolder
-      .add(settings, "timeStep", 0.0, 0.1, 0.001)
+      .add(settings, "timeStep", 0.0, 0.1, 0.01)
       .name("Time Step")
       .listen();
     simulationFolder
-      .add(settings, "desiredParticleCount", 0, 200000, 1000)
+      .add(settings, "desiredParticleCount", 0, 100000, 1000)
       .name("Desired Count")
       .onChange((value) => {
         this.settings.desiredParticleCount = value;
@@ -172,12 +170,12 @@ class Fluid {
         this.reset();
       });
     simulationFolder
-      .add(settings, "gridCellDensity", 0.0, 1.0, 0.1)
-      .name("density")
+      .add(settings, "gridCellDensity", 0.0, 10.0, 0.1)
+      .name("Grid Density")
       .listen();
     simulationFolder
-      .add(settings, "lifetime", 0.0, 1.0, 0.1)
-      .name("lifetime")
+      .add(settings, "lifetime", 0.0, 20.0, 1)
+      .name("Lifetime")
       .listen();
 
     simulationFolder.add(settings, "curlScale", 0, 1, 0.1).name("Curl Noise");
@@ -252,9 +250,9 @@ class Fluid {
     );
 
     this.renderer.draw();
-    this.settings.showBox && this.box.draw(this.renderer.renderingFramebuffer);
 
-    this.drawTmpTexture(this.renderer.renderingTexture);
+    // this.drawTmpTexture(this.renderer.renderingTexture);
+    // this.drawTmpTexture(this.renderer.compositingTexture);
 
     requestAnimationFrame(this.update.bind(this));
     this.stats.end();
@@ -358,4 +356,4 @@ class Fluid {
   }
 }
 
-export default Fluid;
+export default ART;
