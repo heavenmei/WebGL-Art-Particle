@@ -3,9 +3,9 @@ import WrappedGL from "../lib/wrappedgl.js";
 import Camera from "../lib/camera.js";
 import Utilities, { normalize } from "../lib/utilities.js";
 
+import Box, { BOX_X, BOX_Y, BOX_Z, SIMULATOR_BOX } from "./box.js";
 import Renderer from "./renderer.js";
 import Simulator from "./simulator.js";
-import Box, { BOX_X, BOX_Y, BOX_Z } from "./box.js";
 import Stats from "stats.js";
 
 import vertFullscreen from "./shaders/fullscreen.vert";
@@ -14,15 +14,13 @@ import fragFullscreen from "./shaders/fullscreen.frag";
 const FOV = Math.PI / 3;
 const PARTICLES_PER_CELL = 10;
 
-const SIMULATOR_BOX = [BOX_X, 1, BOX_Z];
-
 class Fluid {
   settings = {
     showBox: true,
 
-    sphereRadius: 1.0,
-    particleCount: 10000,
-    desiredParticleCount: 10000,
+    sphereRadius: 0.5,
+    particleCount: 0,
+    desiredParticleCount: 70000,
     gridCellDensity: 6,
 
     timeStep: 0,
@@ -52,7 +50,7 @@ class Fluid {
       0.1,
       100.0
     );
-    this.camera = new Camera(this.canvas, [0, 0, 0]);
+    this.camera = new Camera(this.canvas, [BOX_X / 2, BOX_Y / 2, BOX_Z / 2]);
 
     // * add lights x = 0.5 光线是从右往左照，y = 0.7 光线从上方往下照， z = 1 说明光线从在场景前方。
     this.directionLight = normalize([0.5, 0.7, 1]);
@@ -150,7 +148,7 @@ class Fluid {
       });
     simulationFolder.add(settings, "particleCount").name("Count").listen();
     simulationFolder
-      .add(settings, "sphereRadius", 0, 10, 1)
+      .add(settings, "sphereRadius", 0, 2, 0.1)
       .name("Sphere Radius")
       .onChange((value) => {
         this.settings.sphereRadius = value;
@@ -166,77 +164,38 @@ class Fluid {
   }
 
   reset() {
-    var gridCells = BOX_X * BOX_Y * BOX_Z * this.settings.gridCellDensity;
+    const particlesWidth = 512; //we fix particlesWidth
+    const particlesHeight = Math.ceil(
+      this.settings.desiredParticleCount / particlesWidth
+    ); //then we calculate the particlesHeight that produces the closest particle count
+    const particleCount = (this.settings.particleCount =
+      particlesWidth * particlesHeight);
 
-    //assuming x:y:z ratio of 2:1:1
-    var gridResolutionY = Math.ceil(Math.pow(gridCells, 1.0 / 3.0));
-    var gridResolutionZ = gridResolutionY * 1;
-    var gridResolutionX = gridResolutionY * 2;
-
-    var totalGridCells = gridResolutionX * gridResolutionY * gridResolutionZ;
-
-    const totalVolume = SIMULATOR_BOX[0] * SIMULATOR_BOX[1] * SIMULATOR_BOX[2];
-
-    var fractionFilled = totalVolume / (BOX_X * BOX_Y * BOX_Z);
-
-    var desiredParticleCount =
-      fractionFilled * totalGridCells * PARTICLES_PER_CELL; //theoretical number of particles
-    this.settings.count = desiredParticleCount;
-
-    var particlesWidth = 512; //we fix particlesWidth
-    var particlesHeight = Math.ceil(this.settings.count / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
-
-    const particleCount = particlesWidth * particlesHeight;
-    var particlePositions = [];
-    for (var j = 0; j < particleCount; ++j) {
-      const position = [
-        Math.random() * SIMULATOR_BOX[0] - BOX_X / 2,
-        Math.random() * SIMULATOR_BOX[1] - BOX_Y / 2,
-        Math.random() * SIMULATOR_BOX[2] - BOX_Z / 2,
-      ];
-      particlePositions.push(position);
+    // * fill particle vertex buffer containing the relevant texture coordinates
+    const particleTextureCoordinates = new Float32Array(particleCount * 2);
+    for (let y = 0; y < particlesHeight; ++y) {
+      for (let x = 0; x < particlesWidth; ++x) {
+        particleTextureCoordinates[(y * particlesWidth + x) * 2] =
+          (x + 0.5) / particlesWidth;
+        particleTextureCoordinates[(y * particlesWidth + x) * 2 + 1] =
+          (y + 0.5) / particlesHeight;
+      }
     }
 
-    // * generate initial particle positions amd create particle position texture for them
-    // const particlePositionsData = new Float32Array(particleCount * 4);
-    // for (let i = 0; i < particleCount; ++i) {
-    //   particlePositionsData[i * 4] =
-    //     Math.random() * SIMULATOR_BOX[0] - BOX_X / 2;
-    //   particlePositionsData[i * 4 + 1] =
-    //     Math.random() * SIMULATOR_BOX[1] - BOX_Y / 2;
-    //   particlePositionsData[i * 4 + 2] =
-    //     Math.random() * SIMULATOR_BOX[2] - BOX_Z / 2;
+    this.simulator.reset(
+      particlesWidth,
+      particlesHeight,
+      this.settings.gridCellDensity,
+      PARTICLES_PER_CELL,
+      particleTextureCoordinates
+    );
 
-    //   particlePositionsData[i * 4 + 3] = 0.0;
-    //   particlePositions.push([
-    //     Math.random() * SIMULATOR_BOX[0] - BOX_X / 2,
-    //     Math.random() * SIMULATOR_BOX[1] - BOX_Y / 2,
-    //     Math.random() * SIMULATOR_BOX[2] - BOX_Z / 2,
-    //   ]);
-    // }
-
-    var gridCells = BOX_X * BOX_Y * BOX_Z * this.settings.gridCellDensity;
-
-    //assuming x:y:z ratio of 2:1:1
-    var gridResolutionY = Math.ceil(Math.pow(gridCells / 2, 1.0 / 3.0));
-    var gridResolutionZ = gridResolutionY * 1;
-    var gridResolutionX = gridResolutionY * 2;
-
-    var gridSize = [BOX_X, BOX_Y, BOX_Z];
-    var gridResolution = [gridResolutionX, gridResolutionY, gridResolutionZ];
-
-    var sphereRadius = 7.0 / gridResolutionX;
     this.renderer.reset(
       particlesWidth,
       particlesHeight,
-      particlePositions,
-      gridSize,
-      gridResolution,
-      PARTICLES_PER_CELL,
-      sphereRadius
+      this.settings.sphereRadius,
+      particleTextureCoordinates
     );
-
-    this.camera.setBounds(0, Math.PI / 2);
   }
 
   drawTmpTexture(texture) {
@@ -260,6 +219,24 @@ class Fluid {
     let deltaTime = (currentTime - this.lastTime) / 1000 || 0.0;
     this.lastTime = currentTime;
 
+    const { mouseVelocity, worldSpaceMouseRay } = this.getMouse();
+    this.simulator.simulate(
+      this.settings.timeStep,
+      mouseVelocity,
+      this.camera.getPosition(),
+      worldSpaceMouseRay
+    );
+
+    this.renderer.draw();
+    this.settings.showBox && this.box.draw(this.renderer.renderingFramebuffer);
+
+    this.drawTmpTexture(this.renderer.renderingTexture);
+
+    requestAnimationFrame(this.update.bind(this));
+    this.stats.end();
+  }
+
+  getMouse() {
     var fov = 2.0 * Math.atan(1.0 / this.projectionMatrix[5]);
 
     var viewSpaceMouseRay = [
@@ -313,20 +290,7 @@ class Fluid {
         mouseVelocityX * cameraRight[i] + mouseVelocityY * cameraUp[i];
     }
 
-    this.simulator.simulate(
-      this.settings.timeStep,
-      mouseVelocity,
-      this.camera.getPosition(),
-      worldSpaceMouseRay
-    );
-
-    this.renderer.draw();
-    this.box.draw(this.renderer.renderingFramebuffer);
-
-    this.drawTmpTexture(this.renderer.renderingTexture);
-
-    requestAnimationFrame(this.update.bind(this));
-    this.stats.end();
+    return { mouseVelocity, worldSpaceMouseRay };
   }
 
   onResize() {

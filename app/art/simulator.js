@@ -14,6 +14,19 @@ import fragSubtract from "./shaders/subtract.frag";
 import fragAdvect from "./shaders/advect.frag";
 import fragCopy from "./shaders/copy.frag";
 
+import { BOX_X, BOX_Y, BOX_Z, SIMULATOR_BOX } from "./box";
+const gridSize = [BOX_X, BOX_Y, BOX_Z];
+/**
+ * PIC/FLIP流体模拟器
+ * 1. 粒子到网格(Particle-to-Grid)：粒子信息被投影到3D格子上，形成速度场。transfer particle velocities to velocity grid
+ * 2. 复制网格(Copy-Grid)：保存当前状态以供后续计算。 save this velocity grid
+ * 3. 标记细胞(Mark-Cells)：识别网格中的固体、液体和空气区域。
+ * 4. 重力更新(Gravity-Update)：对流体施加重力影响。
+ * 5. 压力求解(Pressure-Solve)：通过预条件共轭梯度法解决系统的非零散度问题。 solve velocity grid for non divergence
+ * 6. 速度外推(Velocity Extrapolation)：将流体速度推至边界。
+ * 7. 网格到粒子(Grid-to-Particle)：将更新后的速度信息反投影回粒子。
+ * 8. advect particles through the grid velocity field
+ */
 class Simulator {
   particlesWidth = 0;
   particlesHeight = 0;
@@ -41,12 +54,9 @@ class Simulator {
     this.wgl = wgl;
     this.image = image;
 
-    // todo
     this.halfFloatExt = this.wgl.getExtension("OES_texture_half_float");
     this.wgl.getExtension("OES_texture_half_float_linear");
     this.simulationNumberType = this.halfFloatExt.HALF_FLOAT_OES;
-
-    // * simulation objects (most are filled in by reset)
 
     this.quadVertexBuffer = wgl.createBuffer();
     wgl.bufferData(
@@ -69,7 +79,6 @@ class Simulator {
     this.particleRandomTexture = wgl.createTexture(); //contains a random normalized direction for each particle
 
     // *  create simulation textures
-
     this.velocityTexture = wgl.createTexture();
     this.tempVelocityTexture = wgl.createTexture();
     this.originalVelocityTexture = wgl.createTexture();
@@ -88,62 +97,50 @@ class Simulator {
       transferToGridProgram: {
         vertexShader: vertTransfertogrid,
         fragmentShader: fragTransfertogrid,
-        attributeLocations: { a_textureCoordinates: 0 },
       },
       normalizeGridProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragNormalizegrid,
-        attributeLocations: { a_position: 0 },
       },
       markProgram: {
         vertexShader: vertMark,
         fragmentShader: fragMark,
-        attributeLocations: { a_textureCoordinates: 0 },
       },
       addForceProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragAddforce,
-        attributeLocations: { a_position: 0 },
       },
       enforceBoundariesProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragEnforceboundaries,
-        attributeLocations: { a_textureCoordinates: 0 },
       },
       extendVelocityProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragExtendvelocity,
-        attributeLocations: { a_textureCoordinates: 0 },
       },
       transferToParticlesProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragTransfertoparticles,
-        attributeLocations: { a_position: 0 },
       },
       divergenceProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragDivergence,
-        attributeLocations: { a_position: 0 },
       },
       jacobiProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragJacobi,
-        attributeLocations: { a_position: 0 },
       },
       subtractProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragSubtract,
-        attributeLocations: { a_position: 0 },
       },
       advectProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragAdvect,
-        attributeLocations: { a_position: 0 },
       },
       copyProgram: {
         vertexShader: vertFullscreen,
         fragmentShader: fragCopy,
-        attributeLocations: { a_position: 0 },
       },
     });
 
@@ -155,20 +152,19 @@ class Simulator {
   reset(
     particlesWidth,
     particlesHeight,
-    particlePositions,
-    gridSize,
-    gridResolution,
-    particleDensity
+    gridCellDensity,
+    particleDensity,
+    particleTextureCoordinates
   ) {
     this.gridWidth = gridSize[0];
     this.gridHeight = gridSize[1];
     this.gridDepth = gridSize[2];
 
-    this.gridResolutionX = gridResolution[0];
-    this.gridResolutionY = gridResolution[1];
-    this.gridResolutionZ = gridResolution[2];
-
-    this.particleDensity = particleDensity;
+    // *assuming x:y:z ratio of 2:1:1
+    const gridCells = BOX_X * BOX_Y * BOX_Z * gridCellDensity;
+    this.gridResolutionY = Math.ceil(Math.pow(gridCells, 1.0 / 3.0));
+    this.gridResolutionZ = this.gridResolutionY * 1;
+    this.gridResolutionX = this.gridResolutionY * 2;
 
     this.velocityTextureWidth =
       (this.gridResolutionX + 1) * (this.gridResolutionZ + 1);
@@ -177,25 +173,10 @@ class Simulator {
     this.scalarTextureWidth = this.gridResolutionX * this.gridResolutionZ;
     this.scalarTextureHeight = this.gridResolutionY;
 
-    // * similar to renderer reset
     this.particlesWidth = particlesWidth;
     this.particlesHeight = particlesHeight;
-
-    //  create particle data
-    var particleCount = this.particlesWidth * this.particlesHeight;
-
-    // fill particle vertex buffer containing the relevant texture coordinates
-    var particleTextureCoordinates = new Float32Array(
-      this.particlesWidth * this.particlesHeight * 2
-    );
-    for (var y = 0; y < this.particlesHeight; ++y) {
-      for (var x = 0; x < this.particlesWidth; ++x) {
-        particleTextureCoordinates[(y * this.particlesWidth + x) * 2] =
-          (x + 0.5) / this.particlesWidth;
-        particleTextureCoordinates[(y * this.particlesWidth + x) * 2 + 1] =
-          (y + 0.5) / this.particlesHeight;
-      }
-    }
+    this.particleDensity = particleDensity;
+    this.particleCount = particlesWidth * particlesHeight;
 
     wgl.bufferData(
       this.particleVertexBuffer,
@@ -205,16 +186,12 @@ class Simulator {
     );
 
     // * generate initial particle positions amd create particle position texture for them
-    var particlePositionsData = new Float32Array(
-      this.particlesWidth * this.particlesHeight * 4
-    );
-    var particleRandoms = new Float32Array(
-      this.particlesWidth * this.particlesHeight * 4
-    );
-    for (var i = 0; i < this.particlesWidth * this.particlesHeight; ++i) {
-      particlePositionsData[i * 4] = particlePositions[i][0];
-      particlePositionsData[i * 4 + 1] = particlePositions[i][1];
-      particlePositionsData[i * 4 + 2] = particlePositions[i][2];
+    let particlePositionsData = new Float32Array(this.particleCount * 4);
+    let particleRandoms = new Float32Array(this.particleCount * 4);
+    for (let i = 0; i < this.particleCount; ++i) {
+      particlePositionsData[i * 4] = Math.random() * SIMULATOR_BOX[0];
+      particlePositionsData[i * 4 + 1] = Math.random() * SIMULATOR_BOX[1];
+      particlePositionsData[i * 4 + 2] = Math.random() * SIMULATOR_BOX[2];
       particlePositionsData[i * 4 + 3] = 0.0;
 
       var theta = Math.random() * 2.0 * Math.PI;
@@ -227,6 +204,7 @@ class Simulator {
 
     // console.log("particlePositionTexture===", particlePositionsData);
 
+    // * position
     wgl.rebuildTexture(
       this.particleInitPositionTexture,
       wgl.RGBA,
@@ -265,6 +243,7 @@ class Simulator {
       wgl.NEAREST
     );
 
+    // * Velocity
     wgl.rebuildTexture(
       this.particleVelocityTexture,
       wgl.RGBA,
@@ -301,7 +280,7 @@ class Simulator {
       wgl.CLAMP_TO_EDGE,
       wgl.NEAREST,
       wgl.NEAREST
-    ); //contains a random normalized direction for each particle
+    );
 
     // * create simulation textures
 
@@ -365,7 +344,8 @@ class Simulator {
       wgl.CLAMP_TO_EDGE,
       wgl.LINEAR,
       wgl.LINEAR
-    ); //marks fluid/air, 1 if fluid, 0 if air
+    );
+
     wgl.rebuildTexture(
       this.divergenceTexture,
       wgl.RGBA,
@@ -404,28 +384,12 @@ class Simulator {
     );
   }
 
+  /**
+   * 1. Two Steps: transfer particle velocities to grid
+   * 1.1. Accumulate weight * velocity -> tempVelocityTexture and then weight -> weightTexture
+   */
   transferToGrid() {
     var wgl = this.wgl;
-
-    /*
-            the simulation process
-            transfer particle velocities to velocity grid
-            save this velocity grid
-
-            solve velocity grid for non divergence
-
-            update particle velocities with new velocity grid
-            advect particles through the grid velocity field
-        */
-
-    //////////////////////////////////////////////////////
-    //transfer particle velocities to grid
-
-    //we transfer particle velocities to the grid in two steps
-    //in the first step, we accumulate weight * velocity into tempVelocityTexture and then weight into weightTexture
-    //in the second step: velocityTexture = tempVelocityTexture / weightTexture
-
-    //we accumulate into velocityWeightTexture and then divide into velocityTexture
 
     var transferToGridDrawState = wgl
       .createDrawState()
@@ -467,7 +431,7 @@ class Simulator {
       .blendEquation(wgl.FUNC_ADD)
       .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE);
 
-    //accumulate weight
+    // * accumulate weight
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
       wgl.FRAMEBUFFER,
@@ -487,7 +451,7 @@ class Simulator {
 
     transferToGridDrawState.uniform1i("u_accumulate", 0);
 
-    //each particle gets splatted layer by layer from z - (SPLAT_SIZE - 1) / 2 to z + (SPLAT_SIZE - 1) / 2
+    // each particle gets splatted layer by layer from z - (SPLAT_SIZE - 1) / 2 to z + (SPLAT_SIZE - 1) / 2
     var SPLAT_DEPTH = 5;
 
     for (var z = -(SPLAT_DEPTH - 1) / 2; z <= (SPLAT_DEPTH - 1) / 2; ++z) {
@@ -500,7 +464,7 @@ class Simulator {
       );
     }
 
-    //accumulate (weight * velocity)
+    // * accumulate (weight * velocity)
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
       wgl.FRAMEBUFFER,
@@ -527,9 +491,8 @@ class Simulator {
     }
   }
 
+  // 1.2. velocityTexture = tempVelocityTexture / weightTexture
   normalize() {
-    //in the second step, we divide sum(weight * velocity) by sum(weight) (the two accumulated quantities from before)
-
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
       wgl.FRAMEBUFFER,
@@ -566,7 +529,39 @@ class Simulator {
     wgl.drawArrays(normalizeDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  // mark cells with fluid
+  // 2. save our original velocity grid
+  copyDraw() {
+    wgl.framebufferTexture2D(
+      this.simulationFramebuffer,
+      wgl.FRAMEBUFFER,
+      wgl.COLOR_ATTACHMENT0,
+      wgl.TEXTURE_2D,
+      this.originalVelocityTexture,
+      0
+    );
+
+    var copyDrawState = wgl
+      .createDrawState()
+      .bindFramebuffer(this.simulationFramebuffer)
+      .viewport(0, 0, this.velocityTextureWidth, this.velocityTextureHeight)
+
+      .vertexAttribPointer(
+        this.quadVertexBuffer,
+        0,
+        2,
+        wgl.FLOAT,
+        wgl.FALSE,
+        0,
+        0
+      )
+
+      .useProgram(this.copyProgram)
+      .uniformTexture("u_texture", 0, wgl.TEXTURE_2D, this.velocityTexture);
+
+    wgl.drawArrays(copyDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  // 3. mark cells with fluid
   markCells() {
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
@@ -619,39 +614,7 @@ class Simulator {
     );
   }
 
-  // save our original velocity grid
-  copyDraw() {
-    wgl.framebufferTexture2D(
-      this.simulationFramebuffer,
-      wgl.FRAMEBUFFER,
-      wgl.COLOR_ATTACHMENT0,
-      wgl.TEXTURE_2D,
-      this.originalVelocityTexture,
-      0
-    );
-
-    var copyDrawState = wgl
-      .createDrawState()
-      .bindFramebuffer(this.simulationFramebuffer)
-      .viewport(0, 0, this.velocityTextureWidth, this.velocityTextureHeight)
-
-      .vertexAttribPointer(
-        this.quadVertexBuffer,
-        0,
-        2,
-        wgl.FLOAT,
-        wgl.FALSE,
-        0,
-        0
-      )
-
-      .useProgram(this.copyProgram)
-      .uniformTexture("u_texture", 0, wgl.TEXTURE_2D, this.velocityTexture);
-
-    wgl.drawArrays(copyDrawState, wgl.TRIANGLE_STRIP, 0, 4);
-  }
-
-  // add forces to velocity grid
+  // 4. add forces to velocity grid
   addForce(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection) {
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
@@ -718,50 +681,7 @@ class Simulator {
     wgl.drawArrays(addForceDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  // enforce boundary velocity conditions
-  enforceBoundary() {
-    wgl.framebufferTexture2D(
-      this.simulationFramebuffer,
-      wgl.FRAMEBUFFER,
-      wgl.COLOR_ATTACHMENT0,
-      wgl.TEXTURE_2D,
-      this.tempVelocityTexture,
-      0
-    );
-
-    var enforceBoundariesDrawState = wgl
-      .createDrawState()
-      .bindFramebuffer(this.simulationFramebuffer)
-      .viewport(0, 0, this.velocityTextureWidth, this.velocityTextureHeight)
-
-      .vertexAttribPointer(
-        this.quadVertexBuffer,
-        0,
-        2,
-        wgl.FLOAT,
-        wgl.FALSE,
-        0,
-        0
-      )
-
-      .useProgram(this.enforceBoundariesProgram)
-      .uniformTexture(
-        "u_velocityTexture",
-        0,
-        wgl.TEXTURE_2D,
-        this.velocityTexture
-      )
-      .uniform3f(
-        "u_gridResolution",
-        this.gridResolutionX,
-        this.gridResolutionY,
-        this.gridResolutionZ
-      );
-
-    wgl.drawArrays(enforceBoundariesDrawState, wgl.TRIANGLE_STRIP, 0, 4);
-  }
-
-  // update velocityTexture for non divergence compute divergence for pressure projection
+  // 5. update velocityTexture for non divergence compute divergence for pressure projection
   divergence() {
     var divergenceDrawState = wgl
       .createDrawState()
@@ -805,7 +725,7 @@ class Simulator {
     wgl.drawArrays(divergenceDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  //compute pressure via jacobi iteration
+  // 5. compute pressure via jacobi iteration
   jacobi() {
     var jacobiDrawState = wgl
       .createDrawState()
@@ -842,7 +762,7 @@ class Simulator {
       wgl.COLOR_BUFFER_BIT
     );
 
-    var PRESSURE_JACOBI_ITERATIONS = 50;
+    const PRESSURE_JACOBI_ITERATIONS = 50;
     for (var i = 0; i < PRESSURE_JACOBI_ITERATIONS; ++i) {
       wgl.framebufferTexture2D(
         this.simulationFramebuffer,
@@ -865,7 +785,50 @@ class Simulator {
     }
   }
 
-  //subtract pressure gradient from velocity
+  // 6. enforce boundary velocity conditions
+  enforceBoundary() {
+    wgl.framebufferTexture2D(
+      this.simulationFramebuffer,
+      wgl.FRAMEBUFFER,
+      wgl.COLOR_ATTACHMENT0,
+      wgl.TEXTURE_2D,
+      this.tempVelocityTexture,
+      0
+    );
+
+    var enforceBoundariesDrawState = wgl
+      .createDrawState()
+      .bindFramebuffer(this.simulationFramebuffer)
+      .viewport(0, 0, this.velocityTextureWidth, this.velocityTextureHeight)
+
+      .vertexAttribPointer(
+        this.quadVertexBuffer,
+        0,
+        2,
+        wgl.FLOAT,
+        wgl.FALSE,
+        0,
+        0
+      )
+
+      .useProgram(this.enforceBoundariesProgram)
+      .uniformTexture(
+        "u_velocityTexture",
+        0,
+        wgl.TEXTURE_2D,
+        this.velocityTexture
+      )
+      .uniform3f(
+        "u_gridResolution",
+        this.gridResolutionX,
+        this.gridResolutionY,
+        this.gridResolutionZ
+      );
+
+    wgl.drawArrays(enforceBoundariesDrawState, wgl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  // 6. subtract pressure gradient from velocity
   subtract() {
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
@@ -907,7 +870,7 @@ class Simulator {
     wgl.drawArrays(subtractDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  // transfer velocities back to particles
+  // 7. transfer velocities back to particles
   transferToParticles() {
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
@@ -971,7 +934,7 @@ class Simulator {
     wgl.drawArrays(transferToParticlesDrawState, wgl.TRIANGLE_STRIP, 0, 4);
   }
 
-  // advect particle positions with velocity grid using RK2
+  // 8. advect particle positions with velocity grid using RK2
   advect(timeStep) {
     wgl.framebufferTexture2D(
       this.simulationFramebuffer,
@@ -1049,18 +1012,17 @@ class Simulator {
 
     this.transferToGrid();
     this.normalize();
-    this.markCells();
     this.copyDraw();
+    this.markCells();
     this.addForce(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
 
     swap(this, "velocityTexture", "tempVelocityTexture");
 
+    this.divergence();
+    this.jacobi();
+
     this.enforceBoundary();
     swap(this, "velocityTexture", "tempVelocityTexture");
-
-    this.divergence();
-
-    this.jacobi();
 
     this.subtract();
     swap(this, "velocityTexture", "tempVelocityTexture");

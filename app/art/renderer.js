@@ -1,7 +1,5 @@
 import Utilities from "../lib/utilities";
 
-import vertFullscreen from "./shaders/fullscreen.vert";
-import fragFullscreen from "./shaders/fullscreen.frag";
 import vertSphere from "./shaders/sphere.vert";
 import fragSphere from "./shaders/sphere.frag";
 
@@ -12,14 +10,6 @@ class Renderer {
   particlesWidth = 0;
   particlesHeight = 0;
   sphereRadius = 0.0;
-
-  //mouse position is in [-1, 1]
-  mouseX = 0;
-  mouseY = 0;
-
-  //the mouse plane is a plane centered at the camera orbit point and orthogonal to the view direction
-  lastMousePlaneX = 0;
-  lastMousePlaneY = 0;
 
   constructor(
     canvas,
@@ -157,11 +147,6 @@ class Renderer {
         vertexShader: vertSphere,
         fragmentShader: fragSphere,
       },
-      fullscreenTextureProgram: {
-        vertexShader: vertFullscreen,
-        fragmentShader: fragFullscreen,
-        attributeLocations: { a_position: 0 },
-      },
     });
 
     for (let programName in programs) {
@@ -172,40 +157,12 @@ class Renderer {
   reset(
     particlesWidth,
     particlesHeight,
-    particlePositions,
-    gridSize,
-    gridResolution,
-    particleDensity,
-    sphereRadius
+    sphereRadius,
+    particleTextureCoordinates
   ) {
-    this.simulator.reset(
-      particlesWidth,
-      particlesHeight,
-      particlePositions,
-      gridSize,
-      gridResolution,
-      particleDensity
-    );
-
     this.particlesWidth = particlesWidth;
     this.particlesHeight = particlesHeight;
     this.sphereRadius = sphereRadius;
-
-    // * create particle data
-    var particleCount = this.particlesWidth * this.particlesHeight;
-
-    // * fill particle vertex buffer containing the relevant texture coordinates
-    var particleTextureCoordinates = new Float32Array(
-      this.particlesWidth * this.particlesHeight * 2
-    );
-    for (var y = 0; y < this.particlesHeight; ++y) {
-      for (var x = 0; x < this.particlesWidth; ++x) {
-        particleTextureCoordinates[(y * this.particlesWidth + x) * 2] =
-          (x + 0.5) / this.particlesWidth;
-        particleTextureCoordinates[(y * this.particlesWidth + x) * 2 + 1] =
-          (y + 0.5) / this.particlesHeight;
-      }
-    }
 
     wgl.bufferData(
       this.particleVertexBuffer,
@@ -318,30 +275,12 @@ class Renderer {
     );
   }
 
-  drawTmpTexture(texture) {
-    let wgl = this.wgl;
-    wgl.clear(
-      wgl.createClearState().bindFramebuffer(null).clearColor(0, 0, 0, 0),
-      wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT
-    );
-    var drawState = wgl
-      .createDrawState()
-      .bindFramebuffer(null)
-      .viewport(0, 0, this.canvas.width, this.canvas.height)
-      .useProgram(this.fullscreenTextureProgram)
-      .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, false, 0, 0)
-      .uniformTexture("u_input", 0, wgl.TEXTURE_2D, texture);
-    wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
-  }
-
   draw() {
     const projectionMatrix = this.projectionMatrix;
     const viewMatrix = this.camera.getViewMatrix();
     const fov = 2.0 * Math.atan(1.0 / projectionMatrix[5]);
 
     this.drawSphere(projectionMatrix, viewMatrix);
-
-    this.drawTmpTexture(this.renderingTexture);
   }
 
   onResize() {

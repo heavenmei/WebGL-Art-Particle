@@ -7,14 +7,15 @@ export const BORDER = 1;
 export const BOX_X = 30;
 export const BOX_Y = 10;
 export const BOX_Z = 20;
+export const SIMULATOR_BOX = [BOX_X, 1, BOX_Z];
 
 const BOX_COLOR = [0.9, 0.9, 0.9, 1.0];
 const BOX = [
-  {
-    // font
-    translate: [0, 0, BOX_Z / 2 + BORDER],
-    size: [BOX_X + BORDER * 3, BOX_Y + BORDER * 2, BORDER],
-  },
+  // {
+  //   // font
+  //   translate: [0, 0, BOX_Z / 2 + BORDER],
+  //   size: [BOX_X + BORDER * 3, BOX_Y + BORDER * 2, BORDER],
+  // },
   {
     // behind
     translate: [0, 0, -BOX_Z / 2 - BORDER],
@@ -156,9 +157,9 @@ class Box {
       boxDrawState
         .uniform3f(
           "u_translation",
-          box.translate[0],
-          box.translate[1],
-          box.translate[2]
+          box.translate[0] + BOX_X / 2,
+          box.translate[1] + BOX_Y / 2,
+          box.translate[2] + BOX_Z / 2
         )
         .uniform3f("u_scale", box.size[0], box.size[1], box.size[2]);
 
